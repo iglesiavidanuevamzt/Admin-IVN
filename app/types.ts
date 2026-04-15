@@ -1,5 +1,5 @@
 // Contenido para app/types.ts
-export type Screen = 'anuncios' | 'agenda' | 'devocionales' | 'eventos';
+export type Screen = 'home' |'anuncios' | 'agenda' | 'devocionales' | 'eventos';
 
 export interface FormState {
   titulo?: string;
