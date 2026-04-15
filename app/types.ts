@@ -1,7 +1,8 @@
-// Contenido para app/types.ts
-export type Screen = 'home' |'anuncios' | 'agenda' | 'devocionales' | 'eventos';
+// app/types.ts
+export type Screen = 'home' | 'anuncios' | 'agenda' | 'devocionales' | 'eventos';
 
 export interface FormState {
+  id?: number | null;
   titulo?: string;
   ministerio?: string;
   mensaje?: string;
