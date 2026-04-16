@@ -9,7 +9,7 @@ import { CaptureForm } from './components/CaptureForm';
 import { HistoryView } from './components/HistoryView'; 
 import { CalendarView } from './components/CalendarView'; 
 
-// Definición de tipos integrada para evitar errores de importación
+// Definición de tipos integrada
 type Screen = 'home' | 'avisos' | 'agenda' | 'devocionales' | 'eventos' | 'history' | 'agenda-view' | 'devocional';
 
 interface FormState {
@@ -54,7 +54,6 @@ export default function AdminApp() {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
-  // Cambiamos el parámetro a 'any' para evitar conflictos con los componentes hijos
   const handleNavigate = (screen: any) => {
     if (screen === 'avisos' || screen === 'anuncios') {
       setForm(prev => ({
@@ -74,7 +73,7 @@ export default function AdminApp() {
       <Navbar currentScreen={currentScreen} onNavigate={handleNavigate} />
       
       <main className="max-w-4xl mx-auto">
-        {/* AJUSTE CLAVE: Usamos una función anónima (s: any) para que TypeScript no bloquee el build */}
+        {/* AJUSTE EN LÍNEA 82: Evitamos el error de tipos con (s: any) */}
         {currentScreen === 'home' && (
           <HomeScreen onNavigate={(s: any) => handleNavigate(s)} />
         )}
@@ -96,7 +95,6 @@ export default function AdminApp() {
           />
         )}
 
-        {/* PANTALLA DE HISTORIAL */}
         {currentScreen === 'history' && (
           <HistoryView 
             onBack={() => setCurrentScreen('avisos')} 
@@ -116,7 +114,6 @@ export default function AdminApp() {
           />
         )}
 
-        {/* --- NUEVA PANTALLA: CALENDARIO / AGENDA --- */}
         {currentScreen === 'agenda-view' && (
           <div className="py-6">
             <button 
