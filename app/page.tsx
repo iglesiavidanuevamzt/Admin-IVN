@@ -9,7 +9,7 @@ import { CaptureForm } from './components/CaptureForm';
 import { HistoryView } from './components/HistoryView'; 
 // NUEVA IMPORTACIÓN
 import { CalendarView } from './components/CalendarView'; 
-type Screen = 'home' | 'anuncios' | 'agenda' | 'devocionales' | 'eventos';
+type Screen = 'home' | 'avisos' | 'agenda' | 'devocionales' | 'eventos';
 
 interface FormState {
   id?: number | null;
