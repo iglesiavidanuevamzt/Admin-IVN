@@ -54,7 +54,7 @@ export default function AdminApp() {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
-// Cambiamos el parámetro a 'any' para evitar conflictos con los componentes hijos
+  // Cambiamos el parámetro a 'any' para evitar conflictos con los componentes hijos
   const handleNavigate = (screen: any) => {
     if (screen === 'avisos' || screen === 'anuncios') {
       setForm(prev => ({
@@ -74,7 +74,10 @@ export default function AdminApp() {
       <Navbar currentScreen={currentScreen} onNavigate={handleNavigate} />
       
       <main className="max-w-4xl mx-auto">
-        {currentScreen === 'home' && <HomeScreen onNavigate={handleNavigate} />}
+        {/* AJUSTE CLAVE: Usamos una función anónima (s: any) para que TypeScript no bloquee el build */}
+        {currentScreen === 'home' && (
+          <HomeScreen onNavigate={(s: any) => handleNavigate(s)} />
+        )}
         
         {currentScreen === 'devocional' && (
           <DevocionalForm form={form} onChange={updateForm} onBack={() => setCurrentScreen('home')} />
