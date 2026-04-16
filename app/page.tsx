@@ -9,7 +9,6 @@ import { CaptureForm } from './components/CaptureForm';
 import { HistoryView } from './components/HistoryView'; 
 // NUEVA IMPORTACIÓN
 import { CalendarView } from './components/CalendarView'; 
-// Reemplaza la importación de la línea 12 con esto:
 type Screen = 'home' | 'anuncios' | 'agenda' | 'devocionales' | 'eventos';
 
 interface FormState {
@@ -24,6 +23,17 @@ interface FormState {
   hora?: string;
   descripcion?: string;
   reflexion?: string;
+  // Agrega estos campos si te marca error en ellos:
+  fechaExpiracion?: string;
+  fechaPersonalizada?: string;
+  fechaDevocional?: string;
+  fechaEvento?: string;
+  horaInicio?: string;
+  horaFin?: string;
+  descripcionEvento?: string;
+  publicarEnTablon?: boolean;
+  vigenciaAnuncio?: string;
+  imagen_url?: string;
 }
 
 const getFechaHoy = () => new Date().toISOString().split('T')[0];
