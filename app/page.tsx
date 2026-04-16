@@ -54,12 +54,16 @@ export default function AdminApp() {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
-  // Cambiamos a 'any' para que HomeScreen y otros componentes no den error de tipos
+// Cambiamos el parámetro a 'any' para evitar conflictos con los componentes hijos
   const handleNavigate = (screen: any) => {
-    if (screen === 'avisos') {
+    if (screen === 'avisos' || screen === 'anuncios') {
       setForm(prev => ({
-        ...prev, id: null, titulo: '', mensaje: '', 
-        imagen_url: '', fechaExpiracion: getFechaHoy() 
+        ...prev, 
+        id: null, 
+        titulo: '', 
+        mensaje: '', 
+        imagen_url: '', 
+        fechaExpiracion: getFechaHoy() 
       }));
     }
     setCurrentScreen(screen);
