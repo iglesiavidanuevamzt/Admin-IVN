@@ -9,7 +9,6 @@ import { CaptureForm } from './components/CaptureForm';
 import { HistoryView } from './components/HistoryView'; 
 import { CalendarView } from './components/CalendarView'; 
 
-// Usamos any para máxima flexibilidad en el build
 type Screen = any;
 
 interface FormState {
@@ -57,8 +56,12 @@ export default function AdminApp() {
   const handleNavigate = (screen: any) => {
     if (screen === 'avisos' || screen === 'anuncios') {
       setForm(prev => ({
-        ...prev, id: null, titulo: '', mensaje: '', 
-        imagen_url: '', fechaExpiracion: getFechaHoy() 
+        ...prev, 
+        id: null, 
+        titulo: '', 
+        mensaje: '', 
+        imagen_url: '', 
+        fechaExpiracion: getFechaHoy() 
       }));
     }
     setCurrentScreen(screen);
@@ -70,7 +73,7 @@ export default function AdminApp() {
       
       <main className="max-w-4xl mx-auto">
         {currentScreen === 'home' && (
-          // @ts-ignore - Forzamos a TS a ignorar el error de tipos en esta línea
+          // @ts-ignore
           <HomeScreen onNavigate={handleNavigate} />
         )}
         
