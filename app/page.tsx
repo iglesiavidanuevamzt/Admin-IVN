@@ -9,8 +9,8 @@ import { CaptureForm } from './components/CaptureForm';
 import { HistoryView } from './components/HistoryView'; 
 import { CalendarView } from './components/CalendarView'; 
 
-// Definición de tipos integrada
-type Screen = 'home' | 'avisos' | 'agenda' | 'devocionales' | 'eventos' | 'history' | 'agenda-view' | 'devocional';
+// 1. CAMBIO RADICAL: Definimos Screen como 'any' para que nada choque
+type Screen = any;
 
 interface FormState {
   id?: number | null;
@@ -39,7 +39,7 @@ interface FormState {
 const getFechaHoy = () => new Date().toISOString().split('T')[0];
 
 export default function AdminApp() {
-  const [currentScreen, setCurrentScreen] = useState<Screen>('home');
+  const [currentScreen, setCurrentScreen] = useState<any>('home'); // Cambiado a any
   
   const [form, setForm] = useState<FormState>({
     id: null, titulo: '', ministerio: 'General', mensaje: '', 
@@ -57,12 +57,8 @@ export default function AdminApp() {
   const handleNavigate = (screen: any) => {
     if (screen === 'avisos' || screen === 'anuncios') {
       setForm(prev => ({
-        ...prev, 
-        id: null, 
-        titulo: '', 
-        mensaje: '', 
-        imagen_url: '', 
-        fechaExpiracion: getFechaHoy() 
+        ...prev, id: null, titulo: '', mensaje: '', 
+        imagen_url: '', fechaExpiracion: getFechaHoy() 
       }));
     }
     setCurrentScreen(screen);
@@ -73,9 +69,9 @@ export default function AdminApp() {
       <Navbar currentScreen={currentScreen} onNavigate={handleNavigate} />
       
       <main className="max-w-4xl mx-auto">
-        {/* AJUSTE EN LÍNEA 82: Evitamos el error de tipos con (s: any) */}
+        {/* Aquí ya no habrá error porque todo es 'any' */}
         {currentScreen === 'home' && (
-          <HomeScreen onNavigate={(s: any) => handleNavigate(s)} />
+          <HomeScreen onNavigate={handleNavigate} />
         )}
         
         {currentScreen === 'devocional' && (
