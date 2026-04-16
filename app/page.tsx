@@ -9,7 +9,22 @@ import { CaptureForm } from './components/CaptureForm';
 import { HistoryView } from './components/HistoryView'; 
 // NUEVA IMPORTACIÓN
 import { CalendarView } from './components/CalendarView'; 
-import { FormState, Screen } from './types';
+// Reemplaza la importación de la línea 12 con esto:
+type Screen = 'home' | 'anuncios' | 'agenda' | 'devocionales' | 'eventos';
+
+interface FormState {
+  id?: number | null;
+  titulo?: string;
+  ministerio?: string;
+  mensaje?: string;
+  urgencia?: string;
+  vigencia?: string;
+  fecha?: string;
+  evento?: string;
+  hora?: string;
+  descripcion?: string;
+  reflexion?: string;
+}
 
 const getFechaHoy = () => new Date().toISOString().split('T')[0];
 
