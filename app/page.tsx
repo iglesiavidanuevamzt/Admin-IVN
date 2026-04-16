@@ -7,9 +7,10 @@ import { DevocionalForm } from './components/DevocionalForm';
 import { AgendaForm } from './components/AgendaForm';
 import { CaptureForm } from './components/CaptureForm'; 
 import { HistoryView } from './components/HistoryView'; 
-// NUEVA IMPORTACIÓN
 import { CalendarView } from './components/CalendarView'; 
-type Screen = 'home' | 'avisos' | 'agenda' | 'devocionales' | 'eventos';
+
+// Definición de tipos integrada para evitar errores de importación
+type Screen = 'home' | 'avisos' | 'agenda' | 'devocionales' | 'eventos' | 'history' | 'agenda-view' | 'devocional';
 
 interface FormState {
   id?: number | null;
@@ -23,7 +24,6 @@ interface FormState {
   hora?: string;
   descripcion?: string;
   reflexion?: string;
-  // Agrega estos campos si te marca error en ellos:
   fechaExpiracion?: string;
   fechaPersonalizada?: string;
   fechaDevocional?: string;
@@ -54,7 +54,8 @@ export default function AdminApp() {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleNavigate = (screen: Screen) => {
+  // Cambiamos a 'any' para que HomeScreen y otros componentes no den error de tipos
+  const handleNavigate = (screen: any) => {
     if (screen === 'avisos') {
       setForm(prev => ({
         ...prev, id: null, titulo: '', mensaje: '', 
@@ -68,16 +69,6 @@ export default function AdminApp() {
     <div className="min-h-screen bg-slate-50">
       <Navbar currentScreen={currentScreen} onNavigate={handleNavigate} />
       
-      {/* BOTÓN RÁPIDO PARA VER AGENDA (Opcional, puedes ponerlo en el Navbar o Home) 
-      <div className="max-w-4xl mx-auto px-4 pt-4 flex justify-end">
-         <button 
-           onClick={() => setCurrentScreen('agenda-view' as any)}
-           className="bg-white border border-slate-200 text-[#1b3a4a] text-[10px] font-black px-4 py-2 rounded-xl shadow-sm hover:bg-slate-50 transition-all uppercase tracking-widest"
-         >
-           Ver Calendario de Avisos
-         </button>
-      </div>*/}
-
       <main className="max-w-4xl mx-auto">
         {currentScreen === 'home' && <HomeScreen onNavigate={handleNavigate} />}
         
@@ -94,15 +85,15 @@ export default function AdminApp() {
             form={form} 
             onChange={updateForm} 
             onBack={() => setCurrentScreen('home')} 
-            onShowHistory={() => setCurrentScreen('history' as any)} 
+            onShowHistory={() => setCurrentScreen('history')} 
           />
         )}
 
         {/* PANTALLA DE HISTORIAL */}
-        {currentScreen === ('history' as any) && (
+        {currentScreen === 'history' && (
           <HistoryView 
             onBack={() => setCurrentScreen('avisos')} 
-            onEdit={(aviso) => {
+            onEdit={(aviso: any) => {
               setForm({
                 ...form,
                 id: aviso.id,
@@ -119,7 +110,7 @@ export default function AdminApp() {
         )}
 
         {/* --- NUEVA PANTALLA: CALENDARIO / AGENDA --- */}
-        {currentScreen === ('agenda-view' as any) && (
+        {currentScreen === 'agenda-view' && (
           <div className="py-6">
             <button 
               onClick={() => setCurrentScreen('home')}
