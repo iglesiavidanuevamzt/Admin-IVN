@@ -9,7 +9,7 @@ import { CaptureForm } from './components/CaptureForm';
 import { HistoryView } from './components/HistoryView'; 
 // NUEVA IMPORTACIÓN
 import { CalendarView } from './components/CalendarView'; 
-import { FormState, Screen } from './types';
+import { FormState, Screen } from '../types';
 
 const getFechaHoy = () => new Date().toISOString().split('T')[0];
 
@@ -21,7 +21,7 @@ export default function AdminApp() {
     urgencia: 'informativo', vigencia: '24h', fechaExpiracion: getFechaHoy(), 
     fechaPersonalizada: '', reflexion: '', fechaDevocional: getFechaHoy(),
     fechaEvento: getFechaHoy(), horaInicio: '', horaFin: '', 
-    descripcionEvento: '', publicarEnTablon: false, 
+    descripcionEvento: '', descripcion: '', publicarEnTablon: false, 
     vigenciaAnuncio: '24h', imagen_url: '' 
   });
 
