@@ -7,39 +7,14 @@ import { DevocionalForm } from './components/DevocionalForm';
 import { AgendaForm } from './components/AgendaForm';
 import { CaptureForm } from './components/CaptureForm'; 
 import { HistoryView } from './components/HistoryView'; 
+// NUEVA IMPORTACIÓN
 import { CalendarView } from './components/CalendarView'; 
-
-// Usamos any para evitar que el compilador se detenga aquí
-type Screen = any;
-
-interface FormState {
-  id?: number | null;
-  titulo?: string;
-  ministerio?: string;
-  mensaje?: string;
-  urgencia?: string;
-  vigencia?: string;
-  fecha?: string;
-  evento?: string;
-  hora?: string;
-  descripcion?: string;
-  reflexion?: string;
-  fechaExpiracion?: string;
-  fechaPersonalizada?: string;
-  fechaDevocional?: string;
-  fechaEvento?: string;
-  horaInicio?: string;
-  horaFin?: string;
-  descripcionEvento?: string;
-  publicarEnTablon?: boolean;
-  vigenciaAnuncio?: string;
-  imagen_url?: string;
-}
+import { FormState, Screen } from './types';
 
 const getFechaHoy = () => new Date().toISOString().split('T')[0];
 
 export default function AdminApp() {
-  const [currentScreen, setCurrentScreen] = useState<any>('home');
+  const [currentScreen, setCurrentScreen] = useState<Screen>('home');
   
   const [form, setForm] = useState<FormState>({
     id: null, titulo: '', ministerio: 'General', mensaje: '', 
@@ -54,8 +29,8 @@ export default function AdminApp() {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleNavigate = (screen: any) => {
-    if (screen === 'avisos' || screen === 'anuncios') {
+  const handleNavigate = (screen: Screen) => {
+    if (screen === 'avisos') {
       setForm(prev => ({
         ...prev, id: null, titulo: '', mensaje: '', 
         imagen_url: '', fechaExpiracion: getFechaHoy() 
@@ -68,11 +43,18 @@ export default function AdminApp() {
     <div className="min-h-screen bg-slate-50">
       <Navbar currentScreen={currentScreen} onNavigate={handleNavigate} />
       
+      {/* BOTÓN RÁPIDO PARA VER AGENDA (Opcional, puedes ponerlo en el Navbar o Home) 
+      <div className="max-w-4xl mx-auto px-4 pt-4 flex justify-end">
+         <button 
+           onClick={() => setCurrentScreen('agenda-view' as any)}
+           className="bg-white border border-slate-200 text-[#1b3a4a] text-[10px] font-black px-4 py-2 rounded-xl shadow-sm hover:bg-slate-50 transition-all uppercase tracking-widest"
+         >
+           Ver Calendario de Avisos
+         </button>
+      </div>*/}
+
       <main className="max-w-4xl mx-auto">
-        {currentScreen === 'home' && (
-          /* @ts-expect-error */
-          <HomeScreen onNavigate={handleNavigate} />
-        )}
+        {currentScreen === 'home' && <HomeScreen onNavigate={handleNavigate} />}
         
         {currentScreen === 'devocional' && (
           <DevocionalForm form={form} onChange={updateForm} onBack={() => setCurrentScreen('home')} />
@@ -87,14 +69,15 @@ export default function AdminApp() {
             form={form} 
             onChange={updateForm} 
             onBack={() => setCurrentScreen('home')} 
-            onShowHistory={() => setCurrentScreen('history')} 
+            onShowHistory={() => setCurrentScreen('history' as any)} 
           />
         )}
 
-        {currentScreen === 'history' && (
+        {/* PANTALLA DE HISTORIAL */}
+        {currentScreen === ('history' as any) && (
           <HistoryView 
             onBack={() => setCurrentScreen('avisos')} 
-            onEdit={(aviso: any) => {
+            onEdit={(aviso) => {
               setForm({
                 ...form,
                 id: aviso.id,
@@ -110,7 +93,8 @@ export default function AdminApp() {
           />
         )}
 
-        {currentScreen === 'agenda-view' && (
+        {/* --- NUEVA PANTALLA: CALENDARIO / AGENDA --- */}
+        {currentScreen === ('agenda-view' as any) && (
           <div className="py-6">
             <button 
               onClick={() => setCurrentScreen('home')}
