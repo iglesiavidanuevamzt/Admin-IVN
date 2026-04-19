@@ -3,8 +3,15 @@ import {
   Type, User, Calendar, Clock, 
   ArrowLeft, Send, ChevronDown, AlignLeft 
 } from 'lucide-react';
+import { FormState } from '../../types';
 
-export const AgendaForm = ({ form, onChange, onBack }: any) => {
+interface AgendaFormProps {
+  form: FormState;
+  onChange: (field: keyof FormState, value: any) => void;
+  onBack: () => void;
+}
+
+export const AgendaForm = ({ form, onChange, onBack }: AgendaFormProps) => {
   const ministerios = ['General', 'Varones', 'Mujeres', 'Jóvenes', 'Niños', 'Alabanza'];
 
   return (

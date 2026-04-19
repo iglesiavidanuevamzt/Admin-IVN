@@ -6,10 +6,11 @@ import {
   AlignLeft, CheckCircle2, History, X, Trash2, Edit3 
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { FormState } from '../../types';
 
 interface CaptureFormProps {
-  form: any;
-  onChange: (field: string, value: any) => void;
+  form: FormState;
+  onChange: (field: keyof FormState, value: any) => void;
   onBack: () => void;
 }
 

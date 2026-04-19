@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Type, BookOpen, Calendar, ArrowLeft, Send, Loader2, Settings, X, Trash2, Edit3 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { FormState } from '../../types';
 
 interface DevocionalFormProps {
-  form: any;
-  onChange: (field: string, value: any) => void;
+  form: FormState;
+  onChange: (field: keyof FormState, value: any) => void;
   onBack: () => void;
 }
 
