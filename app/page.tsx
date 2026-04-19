@@ -8,6 +8,7 @@ import { AgendaForm } from './components/AgendaForm';
 import { CaptureForm } from './components/CaptureForm'; 
 import { HistoryView } from './components/HistoryView'; 
 // NUEVA IMPORTACIÓN
+// NUEVA IMPORTACIÓN
 import { CalendarView } from './components/CalendarView'; 
 import { FormState, Screen } from '../types';
 
