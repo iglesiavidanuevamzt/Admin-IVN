@@ -3,9 +3,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Search } from 'lucide-react';
+import { Screen } from '../../types';
 
-export const HomeScreen = ({ onNavigate }: { onNavigate: (s: string) => void }) => {
-  const adminCards = [
+export const HomeScreen = ({ onNavigate }: { onNavigate: (s: Screen) => void }) => {
+  const adminCards: { id: Screen; title: string; iconPath: string }[] = [
     {
       id: 'devocional',
       title: 'Devocionales',
