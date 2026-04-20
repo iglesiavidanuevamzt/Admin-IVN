@@ -103,7 +103,7 @@ export default function AdminApp() {
             >
               ← Volver al Inicio
             </button>
-            <CalendarView />
+            <CalendarView onBack={() => handleNavigate('home')} />
           </div>
         )}
       </main>
