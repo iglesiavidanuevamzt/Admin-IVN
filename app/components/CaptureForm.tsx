@@ -190,7 +190,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
         </button>
       </div>
 
-      <div className="bg-[#85A3A5] rounded-[2.5rem] shadow-2xl p-8 space-y-8 border border-white/20 text-left">
+      <div className="w-full max-w-full bg-[#85A3A5] rounded-[2.5rem] shadow-2xl p-6 sm:p-8 space-y-8 border border-white/20 text-left">
         <div className="space-y-3">
           <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2">
             <ImageIcon className="w-3 h-3" /> DISEÑO GRÁFICO (JPG / PNG)
@@ -220,7 +220,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
 
         <div className="space-y-3">
           <label className="text-[10px] font-black uppercase text-white tracking-widest">Nivel de Urgencia</label>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[
               { id: 'informativo', label: 'Info', color: 'bg-green-600', icon: Info },
               { id: 'importante', label: 'Imp', color: 'bg-amber-500', icon: AlertTriangle },

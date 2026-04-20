@@ -25,7 +25,7 @@ export const AgendaForm = ({ form, onChange, onBack }: AgendaFormProps) => {
       </button>
 
       {/* Contenedor con fondo #85A3A5 */}
-      <div className="bg-[#85A3A5] rounded-[2.5rem] shadow-xl border border-white/20 p-8 space-y-6">
+      <div className="w-full max-w-full bg-[#85A3A5] rounded-[2.5rem] shadow-xl border border-white/20 p-6 sm:p-8 space-y-6">
         
         {/* Nombre del Evento */}
         <div className="space-y-2">
@@ -73,7 +73,7 @@ export const AgendaForm = ({ form, onChange, onBack }: AgendaFormProps) => {
         </div>
 
         {/* Fecha y Hora */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase text-white flex items-center gap-2">
               <Calendar className="w-3 h-3" /> FECHA

@@ -96,7 +96,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
     <motion.div 
       initial={{ opacity: 0, y: 20 }} 
       animate={{ opacity: 1, y: 0 }} 
-      className="px-4 py-8 relative"
+      className="px-4 py-6 sm:px-5 sm:py-8 relative"
     >
       <div className="flex justify-between items-center mb-6">
         <button 
@@ -115,7 +115,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
       </div>
 
       {/* Formulario Principal */}
-      <div className="bg-[#85A3A5] rounded-[2.5rem] shadow-2xl border border-[#748f91] p-8 md:p-10 space-y-8">
+      <div className="w-full max-w-full bg-[#85A3A5] rounded-[2.5rem] shadow-2xl border border-[#748f91] p-6 sm:p-8 md:p-10 space-y-8">
         <div className="space-y-3">
           <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/90">
             <Calendar className="w-3 h-3" /> FECHA DE PUBLICACIÓN
