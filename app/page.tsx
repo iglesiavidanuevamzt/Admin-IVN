@@ -50,7 +50,7 @@ export default function AdminApp() {
            onClick={() => setCurrentScreen('agenda-view' as any)}
            className="bg-white border border-slate-200 text-[#1b3a4a] text-[10px] font-black px-4 py-2 rounded-xl shadow-sm hover:bg-slate-50 transition-all uppercase tracking-widest"
          >
-           Ver Calendario de Avisos
+           Ver Calendario de Alabanzas
          </button>
       </div>*/}
 

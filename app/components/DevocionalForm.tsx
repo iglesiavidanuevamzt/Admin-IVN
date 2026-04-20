@@ -115,15 +115,15 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
       </div>
 
       {/* Formulario Principal */}
-      <div className="w-full max-w-full bg-[#85A3A5] rounded-[2.5rem] shadow-2xl border border-[#748f91] p-6 sm:p-8 md:p-10 space-y-8 box-border">
-        <div className="space-y-3">
+      <div className="w-full max-w-full bg-[#85A3A5] rounded-[2.5rem] shadow-2xl border border-[#748f91] px-0 py-6 sm:px-8 sm:py-8 md:px-10 md:py-10 space-y-8 box-border overflow-hidden">
+        <div className="space-y-3 px-6 sm:px-0">
           <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/90">
             <Calendar className="w-3 h-3" /> FECHA DE PUBLICACIÓN
           </label>
-          <input 
+          <input
             type="date"
             className="w-full max-w-full bg-white border-2 border-transparent rounded-2xl px-6 py-4 focus:border-[#1b3a4a] outline-none transition-all shadow-inner text-slate-600 box-border"
-            value={form.fechaDevocional}
+            style={{ width: 'calc(100vw - 3rem) !important' }}
             onChange={(e) => onChange('fechaDevocional', e.target.value)}
           />
         </div>

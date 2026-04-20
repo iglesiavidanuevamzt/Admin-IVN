@@ -33,7 +33,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
   // 1. CARGAR HISTORIAL (Ajustado a nombres reales de tu DB)
   const fetchHistorial = async () => {
     const { data, error } = await supabase
-      .from('anuncios')
+      .from('alabanzas')
       .select('*')
       .order('creado_el', { ascending: false }); // Usamos creado_el según tu captura
     
@@ -76,7 +76,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
 
   const deleteItem = async (id: string) => {
     if (confirm("¿Estás seguro de eliminar este aviso definitivamente?")) {
-      const { error } = await supabase.from('anuncios').delete().eq('id', id);
+      const { error } = await supabase.from('alabanzas').delete().eq('id', id);
       if (error) alert("No se pudo eliminar.");
       else fetchHistorial();
     }
@@ -132,10 +132,10 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
       let error;
       if (editingId || form.id) {
         const idToUpdate = editingId || form.id;
-        const { error: updateError } = await supabase.from('anuncios').update(payload).eq('id', idToUpdate);
+        const { error: updateError } = await supabase.from('alabanzas').update(payload).eq('id', idToUpdate);
         error = updateError;
       } else {
-        const { error: insertError } = await supabase.from('anuncios').insert([payload]);
+        const { error: insertError } = await supabase.from('alabanzas').insert([payload]);
         error = insertError;
       }
 
@@ -256,8 +256,8 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-full sm:max-w-2xl max-h-[80vh] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col mx-4 sm:mx-0">
               <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                 <div>
-                  <h3 className="font-black text-[#1b3a4a] text-lg tracking-tighter uppercase">Historial de Avisos</h3>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Administra o corrige tus avisos</p>
+                  <h3 className="font-black text-[#1b3a4a] text-lg tracking-tighter uppercase">Historial de Alabanzas</h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Administra o corrige tus alabanzas</p>
                 </div>
                 <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-slate-200 rounded-full transition-all">
                   <X className="w-6 h-6 text-slate-400" />
@@ -282,7 +282,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
                       </button>
                     </div>
                   </div>
-                )) : <p className="text-center py-20 text-slate-400 italic">No hay avisos registrados.</p>}
+                )) : <p className="text-center py-20 text-slate-400 italic">No hay alabanzas registradas.</p>}
               </div>
             </motion.div>
           </div>

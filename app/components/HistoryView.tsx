@@ -9,29 +9,29 @@ interface HistoryViewProps {
 }
 
 export const HistoryView = ({ onEdit, onBack }: HistoryViewProps) => {
-  const [avisos, setAvisos] = useState<any[]>([]);
+  const [alabanzas, setAlabanzas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchAvisos();
+    fetchAlabanzas();
   }, []);
 
-  const fetchAvisos = async () => {
+  const fetchAlabanzas = async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from('anuncios')
+      .from('alabanzas')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error) setAvisos(data || []);
+    if (!error) setAlabanzas(data || []);
     setLoading(false);
   };
 
   const deleteAviso = async (id: string) => {
     if (!confirm("¿Estás seguro de eliminar este aviso?")) return;
     
-    const { error } = await supabase.from('anuncios').delete().eq('id', id);
-    if (!error) fetchAvisos();
+    const { error } = await supabase.from('alabanzas').delete().eq('id', id);
+    if (!error) fetchAlabanzas();
     else alert("Error al eliminar");
   };
 
@@ -41,13 +41,13 @@ export const HistoryView = ({ onEdit, onBack }: HistoryViewProps) => {
         <ArrowLeft className="w-4 h-4" /> Volver al Formulario
       </button>
 
-      <h2 className="text-2xl font-black text-[#1b3a4a] mb-6 uppercase tracking-tighter">Historial de Avisos</h2>
+      <h2 className="text-2xl font-black text-[#1b3a4a] mb-6 uppercase tracking-tighter">Historial de Alabanzas</h2>
 
       {loading ? (
         <div className="flex justify-center py-20"><Loader2 className="animate-spin w-10 h-10 text-[#1b3a4a]" /></div>
       ) : (
         <div className="grid gap-4">
-          {avisos.map((aviso) => (
+          {alabanzas.map((aviso) => (
             <div key={aviso.id} className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-200 flex items-center justify-between">
               <div className="space-y-1">
                 <h3 className="font-bold text-slate-800">{aviso.titulo}</h3>
