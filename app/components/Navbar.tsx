@@ -19,7 +19,7 @@ export const Navbar = ({ currentScreen, onNavigate }: NavbarProps) => (
         alt="Logo Vida Nueva" 
         className="h-10 w-auto" 
       />
-      <h1 className="font-serif text-base sm:text-lg text-white font-bold tracking-tight">
+      <h1 className="font-serif text-sm sm:text-lg text-white font-bold tracking-tight">
         Vida Nueva Awaken
       </h1>
     </div>

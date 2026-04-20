@@ -46,10 +46,10 @@ export const CalendarView = ({ onBack, onAddEvent }: { onBack: () => void, onAdd
     setLoading(true);
     try {
       const { data: agenda } = await supabase.from('agenda').select('*');
-      const { data: alabanzas } = await supabase.from('alabanzas').select('*');
+      const { data: anuncios } = await supabase.from('anuncios').select('*');
       const unified = [
         ...(agenda || []).map(e => ({ ...e, type: 'Agenda', date: e.fecha_evento, title: e.titulo, color: 'bg-blue-600' })),
-        ...(alabanzas || []).map(a => ({ ...a, type: 'Alabanza', date: a.fecha_expiracion, title: a.mensaje, color: 'bg-orange-500' }))
+        ...(anuncios || []).map(a => ({ ...a, type: 'Aviso', date: a.fecha_expiracion, title: a.mensaje, color: 'bg-orange-500' }))
       ];
       setAllEvents(unified);
     } finally { setLoading(false); }

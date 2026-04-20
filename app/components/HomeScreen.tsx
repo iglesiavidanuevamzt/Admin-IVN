@@ -14,7 +14,7 @@ export const HomeScreen = ({ onNavigate }: { onNavigate: (s: Screen) => void }) 
     },
     {
       id: 'avisos',
-      title: 'Alabanzas',
+      title: 'Avisos',
       iconPath: '/icons/logo_avisos.png'
     },
     {
