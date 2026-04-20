@@ -12,9 +12,10 @@ interface CaptureFormProps {
   form: FormState;
   onChange: (field: keyof FormState, value: any) => void;
   onBack: () => void;
+  onShowHistory?: () => void;
 }
 
-export const CaptureForm = ({ form, onChange, onBack }: CaptureFormProps) => {
+export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFormProps) => {
   const [uploading, setUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
