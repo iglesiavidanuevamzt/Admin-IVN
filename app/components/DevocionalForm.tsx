@@ -96,7 +96,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
     <motion.div 
       initial={{ opacity: 0, y: 20 }} 
       animate={{ opacity: 1, y: 0 }} 
-      className="px-4 py-6 sm:px-5 sm:py-8 relative"
+      className="px-4 py-6 sm:px-5 sm:py-8 relative box-border w-full"
     >
       <div className="flex justify-between items-center mb-6">
         <button 
@@ -115,14 +115,14 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
       </div>
 
       {/* Formulario Principal */}
-      <div className="w-full max-w-full bg-[#85A3A5] rounded-[2.5rem] shadow-2xl border border-[#748f91] p-6 sm:p-8 md:p-10 space-y-8">
+      <div className="w-full max-w-full bg-[#85A3A5] rounded-[2.5rem] shadow-2xl border border-[#748f91] p-6 sm:p-8 md:p-10 space-y-8 box-border">
         <div className="space-y-3">
           <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/90">
             <Calendar className="w-3 h-3" /> FECHA DE PUBLICACIÓN
           </label>
           <input 
             type="date"
-            className="w-full bg-white border-2 border-transparent rounded-2xl px-6 py-4 focus:border-[#1b3a4a] outline-none transition-all shadow-inner text-slate-600"
+            className="w-full max-w-full bg-white border-2 border-transparent rounded-2xl px-6 py-4 focus:border-[#1b3a4a] outline-none transition-all shadow-inner text-slate-600 box-border"
             value={form.fechaDevocional}
             onChange={(e) => onChange('fechaDevocional', e.target.value)}
           />
@@ -135,7 +135,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
           <textarea 
             rows={8}
             placeholder="Escribe la reflexión y pasajes bíblicos aquí..."
-            className="w-full bg-white border-2 border-transparent rounded-2xl px-6 py-4 focus:border-[#1b3a4a] outline-none transition-all shadow-inner resize-none text-slate-800"
+            className="w-full max-w-full bg-white border-2 border-transparent rounded-2xl px-6 py-4 focus:border-[#1b3a4a] outline-none transition-all shadow-inner resize-none text-slate-800 box-border"
             value={form.reflexion}
             onChange={(e) => onChange('reflexion', e.target.value)}
           />
