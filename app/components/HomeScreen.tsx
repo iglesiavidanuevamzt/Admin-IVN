@@ -35,7 +35,7 @@ export const HomeScreen = ({ onNavigate }: { onNavigate: (s: Screen) => void }) 
     <div className="fixed inset-0 bg-gradient-to-b from-[#f5eae1] via-[#e5dfda] to-[#122e43] flex flex-col items-center justify-center p-6">
       
       {/* Buscador Superior */}
-      <div className="absolute top-12 w-[90%] max-w-sm flex items-center bg-white/40 backdrop-blur-md px-5 py-3 rounded-full border border-white/20 shadow-sm">
+      <div className="absolute top-12 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm flex items-center bg-white/40 backdrop-blur-md px-5 py-3 rounded-full border border-white/20 shadow-sm">
         <Search className="w-5 h-5 text-slate-400 mr-3" />
         <span className="text-sm font-bold text-slate-400/80 uppercase tracking-widest">Buscar</span>
       </div>

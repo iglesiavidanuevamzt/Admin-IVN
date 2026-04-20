@@ -34,7 +34,7 @@ export const AgendaForm = ({ form, onChange, onBack }: AgendaFormProps) => {
           </label>
           <input 
             type="text"
-            className="w-full bg-white/90 border-2 border-transparent rounded-2xl px-5 py-4 focus:bg-white focus:border-[#1b3a4a] outline-none transition-all shadow-inner text-slate-800"
+            className="w-full max-w-full bg-white/90 border-2 border-transparent rounded-2xl px-5 py-4 focus:bg-white focus:border-[#1b3a4a] outline-none transition-all shadow-inner text-slate-800 box-border"
             value={form.titulo}
             onChange={(e) => onChange('titulo', e.target.value)}
           />
@@ -47,7 +47,7 @@ export const AgendaForm = ({ form, onChange, onBack }: AgendaFormProps) => {
           </label>
           <textarea 
             rows={4}
-            className="w-full bg-white/90 border-2 border-transparent rounded-2xl px-5 py-4 focus:bg-white focus:border-[#1b3a4a] outline-none transition-all shadow-inner text-slate-800 resize-none"
+            className="w-full max-w-full bg-white/90 border-2 border-transparent rounded-2xl px-5 py-4 focus:bg-white focus:border-[#1b3a4a] outline-none transition-all shadow-inner text-slate-800 resize-none box-border"
             placeholder="Detalles adicionales del evento..."
             value={form.descripcion}
             onChange={(e) => onChange('descripcion', e.target.value)}
@@ -61,7 +61,7 @@ export const AgendaForm = ({ form, onChange, onBack }: AgendaFormProps) => {
           </label>
           <div className="relative">
             <select 
-              className="w-full appearance-none bg-white/90 border-2 border-transparent rounded-2xl px-5 py-4 focus:bg-white focus:border-[#1b3a4a] outline-none text-slate-700 cursor-pointer transition-all"
+              className="w-full max-w-full appearance-none bg-white/90 border-2 border-transparent rounded-2xl px-5 py-4 focus:bg-white focus:border-[#1b3a4a] outline-none text-slate-700 cursor-pointer transition-all box-border"
               value={form.ministerio}
               onChange={(e) => onChange('ministerio', e.target.value)}
             >
@@ -80,7 +80,7 @@ export const AgendaForm = ({ form, onChange, onBack }: AgendaFormProps) => {
             </label>
             <input 
               type="date"
-              className="w-full bg-white/90 border-2 border-transparent rounded-2xl px-5 py-4 focus:bg-white focus:border-[#1b3a4a] outline-none text-slate-700 transition-all"
+              className="w-full max-w-full bg-white/90 border-2 border-transparent rounded-2xl px-5 py-4 focus:bg-white focus:border-[#1b3a4a] outline-none text-slate-700 transition-all box-border"
               value={form.fechaEvento}
               onChange={(e) => onChange('fechaEvento', e.target.value)}
             />
@@ -91,7 +91,7 @@ export const AgendaForm = ({ form, onChange, onBack }: AgendaFormProps) => {
             </label>
             <input 
               type="time"
-              className="w-full bg-white/90 border-2 border-transparent rounded-2xl px-5 py-4 focus:bg-white focus:border-[#1b3a4a] outline-none text-slate-700 transition-all"
+              className="w-full max-w-full bg-white/90 border-2 border-transparent rounded-2xl px-5 py-4 focus:bg-white focus:border-[#1b3a4a] outline-none text-slate-700 transition-all box-border"
               value={form.horaInicio}
               onChange={(e) => onChange('horaInicio', e.target.value)}
             />

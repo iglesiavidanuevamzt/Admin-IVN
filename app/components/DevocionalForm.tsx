@@ -170,7 +170,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white w-full max-w-2xl max-h-[80vh] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col"
+              className="bg-white w-full max-w-full sm:max-w-2xl max-h-[80vh] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col mx-4 sm:mx-0"
             >
               <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                 <div>
@@ -187,7 +187,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
                   <div key={item.id} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex justify-between items-center group hover:bg-white hover:shadow-md transition-all">
                     <div className="overflow-hidden">
                       <span className="text-[10px] font-black text-[#85A3A5] tracking-widest">{item.fecha}</span>
-                      <p className="text-slate-600 text-sm truncate max-w-[350px] font-medium">{item.reflexion}</p>
+                      <p className="text-slate-600 text-sm truncate max-w-full font-medium">{item.reflexion}</p>
                     </div>
                     <div className="flex gap-2">
                       <button 

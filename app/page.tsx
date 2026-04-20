@@ -41,11 +41,11 @@ export default function AdminApp() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 overflow-x-hidden">
       <Navbar currentScreen={currentScreen} onNavigate={handleNavigate} />
       
       {/* BOTÓN RÁPIDO PARA VER AGENDA (Opcional, puedes ponerlo en el Navbar o Home) 
-      <div className="max-w-4xl mx-auto px-4 pt-4 flex justify-end">
+      <div className="w-full px-4 max-w-4xl mx-auto pt-4 flex justify-end">
          <button 
            onClick={() => setCurrentScreen('agenda-view' as any)}
            className="bg-white border border-slate-200 text-[#1b3a4a] text-[10px] font-black px-4 py-2 rounded-xl shadow-sm hover:bg-slate-50 transition-all uppercase tracking-widest"
@@ -54,7 +54,7 @@ export default function AdminApp() {
          </button>
       </div>*/}
 
-      <main className="max-w-4xl mx-auto">
+      <main className="w-full max-w-4xl mx-auto px-4">
         {currentScreen === 'home' && <HomeScreen onNavigate={handleNavigate} />}
         
         {currentScreen === 'devocional' && (

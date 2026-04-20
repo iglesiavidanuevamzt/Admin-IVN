@@ -167,7 +167,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
       
       <AnimatePresence>
         {showSuccess && (
-          <motion.div initial={{ opacity: 0, y: -50, x: '-50%' }} animate={{ opacity: 1, y: 20, x: '-50%' }} exit={{ opacity: 0, y: -20, x: '-50%' }} className="fixed top-4 left-1/2 z-[100] flex items-center gap-4 bg-[#1b3a4a] border border-green-500/30 px-6 py-4 rounded-[2rem] shadow-2xl min-w-[280px]">
+          <motion.div initial={{ opacity: 0, y: -50, x: '-50%' }} animate={{ opacity: 1, y: 20, x: '-50%' }} exit={{ opacity: 0, y: -20, x: '-50%' }} className="fixed top-4 left-1/2 z-[100] flex items-center gap-4 bg-[#1b3a4a] border border-green-500/30 px-6 py-4 rounded-[2rem] shadow-2xl max-w-[calc(100vw-2rem)]">
             <CheckCircle2 className="w-6 h-6 text-green-400" />
             <div className="flex flex-col text-left">
               <span className="text-white font-bold text-sm">¡Hecho!</span>
@@ -203,17 +203,17 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
 
         <div className="space-y-2">
           <label className="text-[10px] font-black uppercase text-white tracking-widest">ACTIVIDAD / EVENTO</label>
-          <input type="text" className="w-full bg-white/90 rounded-2xl px-5 py-4 outline-none text-slate-800" value={form.titulo || ''} onChange={(e) => onChange('titulo', e.target.value)} />
+          <input type="text" className="w-full max-w-full bg-white/90 rounded-2xl px-5 py-4 outline-none text-slate-800 box-border" value={form.titulo || ''} onChange={(e) => onChange('titulo', e.target.value)} />
         </div>
 
         <div className="space-y-2">
           <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2"><AlignLeft className="w-3 h-3" /> Descripción</label>
-          <textarea className="w-full bg-white/90 rounded-2xl px-5 py-4 outline-none text-slate-800 min-h-[100px] resize-none" value={form.mensaje || ''} onChange={(e) => onChange('mensaje', e.target.value)} />
+          <textarea className="w-full max-w-full bg-white/90 rounded-2xl px-5 py-4 outline-none text-slate-800 min-h-[100px] resize-none box-border" value={form.mensaje || ''} onChange={(e) => onChange('mensaje', e.target.value)} />
         </div>
 
         <div className="space-y-2">
           <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2"><Users className="w-3 h-3" /> Ministerio Encargado</label>
-          <select className="w-full bg-white/90 rounded-2xl px-5 py-4 outline-none appearance-none text-slate-700" value={form.ministerio || ''} onChange={(e) => onChange('ministerio', e.target.value)}>
+          <select className="w-full max-w-full bg-white/90 rounded-2xl px-5 py-4 outline-none appearance-none text-slate-700 box-border" value={form.ministerio || ''} onChange={(e) => onChange('ministerio', e.target.value)}>
             {ministerios.map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
@@ -236,7 +236,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
 
         <div className="space-y-3">
           <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2"><Calendar className="w-3 h-3" /> Fecha de Caducidad</label>
-          <input type="date" className="w-full bg-white/90 rounded-2xl px-5 py-4 outline-none text-slate-700" value={form.fechaExpiracion || ''} onChange={(e) => onChange('fechaExpiracion', e.target.value)} />
+          <input type="date" className="w-full max-w-full bg-white/90 rounded-2xl px-5 py-4 outline-none text-slate-700 box-border" value={form.fechaExpiracion || ''} onChange={(e) => onChange('fechaExpiracion', e.target.value)} />
         </div>
       </div>
 
@@ -253,7 +253,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
       <AnimatePresence>
         {showHistory && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1b3a4a]/60 backdrop-blur-md">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-2xl max-h-[80vh] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-full sm:max-w-2xl max-h-[80vh] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col mx-4 sm:mx-0">
               <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                 <div>
                   <h3 className="font-black text-[#1b3a4a] text-lg tracking-tighter uppercase">Historial de Avisos</h3>
@@ -271,7 +271,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
                       <span className="text-[10px] font-black text-[#85A3A5] tracking-widest">
                         EXPIRA: {item.fecha_expiracion || 'SIN FECHA'}
                       </span>
-                      <p className="text-slate-600 text-sm truncate max-w-[300px] font-medium uppercase">{item.titulo}</p>
+                      <p className="text-slate-600 text-sm truncate max-w-full font-medium uppercase">{item.titulo}</p>
                     </div>
                     <div className="flex gap-2">
                       <button onClick={() => startEditing(item)} className="p-3 text-blue-500 hover:bg-blue-50 rounded-2xl transition-all">
