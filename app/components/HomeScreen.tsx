@@ -47,7 +47,7 @@ export const HomeScreen = ({ onNavigate }: { onNavigate: (s: Screen) => void }) 
         className="text-center mb-8 mt-12"
       >
         <h1 className="font-serif text-3xl text-[#1b3a4a]">
-          ¡Administrador, <span className="italic text-slate-500">Mario!</span>
+          ¡Administrador!
         </h1>
       </motion.div>
 
