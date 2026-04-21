@@ -68,9 +68,9 @@ export default function AdminApp() {
           <PraisesForm form={form} onChange={updateForm} onBack={() => setCurrentScreen('home')} />
         )}
         
-        {currentScreen === 'agenda' && (
+        {/*{currentScreen === 'agenda' && (
           <AgendaForm form={form} onChange={updateForm} onBack={() => setCurrentScreen('home')} />
-        )}
+        )} */}
         
         {currentScreen === 'avisos' && (
           <CaptureForm 
