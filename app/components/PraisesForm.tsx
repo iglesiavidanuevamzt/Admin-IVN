@@ -6,19 +6,21 @@ import {
   Search, CheckCircle2, AlertTriangle 
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { FormState } from '../../types'; // Asegúrate de que la ruta sea correcta
 
 interface PraisesFormProps {
+  form: FormState;
+  onChange: (field: keyof FormState, value: any) => void;
   onBack: () => void;
 }
 
-export const PraisesForm = ({ onBack }: PraisesFormProps) => {
+export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [historial, setHistorial] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Estados para Notificaciones y Confirmación Estética
   const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'delete' }>({
     show: false, message: '', type: 'success'
   });
@@ -26,13 +28,11 @@ export const PraisesForm = ({ onBack }: PraisesFormProps) => {
     show: false, id: null
   });
 
-  const [form, setForm] = useState({ titulo: '', letra: '' });
-
   const fetchHistorial = async () => {
     const { data, error } = await supabase
       .from('alabanzas')
       .select('*')
-      .order('titulo', { ascending: true }); // Ordenado alfabéticamente para alabanzas
+      .order('titulo', { ascending: true });
     if (data) setHistorial(data);
   };
 
@@ -46,24 +46,31 @@ export const PraisesForm = ({ onBack }: PraisesFormProps) => {
   };
 
   const filteredAlabanzas = historial.filter(item => 
-    item.titulo.toLowerCase().includes(searchTerm.toLowerCase())
+    item.titulo?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const resetLocalForm = () => {
+    setEditingId(null);
+    onChange('titulo' as keyof FormState, '');
+    onChange('letra' as keyof FormState, '');
+  };
 
   const handlePublish = async () => {
     if (!form.titulo || !form.letra) return;
     setIsSubmitting(true);
 
     try {
+      const payload = { titulo: form.titulo, letra: form.letra };
+      
       if (editingId) {
-        await supabase.from('alabanzas').update({ titulo: form.titulo, letra: form.letra }).eq('id', editingId);
+        await supabase.from('alabanzas').update(payload).eq('id', editingId);
         showNotification("Cambios guardados con éxito", 'success');
       } else {
-        await supabase.from('alabanzas').insert([{ titulo: form.titulo, letra: form.letra }]);
+        await supabase.from('alabanzas').insert([payload]);
         showNotification("Alabanza publicada", 'success');
       }
 
-      setEditingId(null);
-      setForm({ titulo: '', letra: '' });
+      resetLocalForm();
       fetchHistorial();
     } catch (error) {
       console.error(error);
@@ -72,7 +79,6 @@ export const PraisesForm = ({ onBack }: PraisesFormProps) => {
     }
   };
 
-  // Función de borrado estético
   const executeDelete = async () => {
     if (!confirmDelete.id) return;
     try {
@@ -89,15 +95,16 @@ export const PraisesForm = ({ onBack }: PraisesFormProps) => {
 
   const startEditing = (item: any) => {
     setEditingId(item.id);
-    setForm({ titulo: item.titulo, letra: item.letra });
+    onChange('titulo' as keyof FormState, item.titulo);
+    onChange('letra' as keyof FormState, item.letra);
     setShowHistory(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-4 py-6 relative w-full">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-4 py-6 relative w-full text-left">
       
-      {/* NOTIFICACIONES ESTÉTICAS (TOASTS) */}
+      {/* NOTIFICACIONES */}
       <AnimatePresence>
         {toast.show && (
           <motion.div 
@@ -117,7 +124,7 @@ export const PraisesForm = ({ onBack }: PraisesFormProps) => {
         )}
       </AnimatePresence>
 
-      {/* MODAL DE CONFIRMACIÓN DE BORRADO */}
+      {/* CONFIRMACIÓN BORRADO */}
       <AnimatePresence>
         {confirmDelete.show && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
@@ -131,18 +138,8 @@ export const PraisesForm = ({ onBack }: PraisesFormProps) => {
               <p className="text-slate-500 text-sm mb-8 leading-relaxed">Esta canción será eliminada de la biblioteca permanentemente.</p>
               
               <div className="flex flex-col gap-3">
-                <button 
-                  onClick={executeDelete}
-                  className="w-full bg-red-500 text-white font-bold py-4 rounded-2xl hover:bg-red-600 transition-all shadow-lg shadow-red-200"
-                >
-                  SÍ, ELIMINAR AHORA
-                </button>
-                <button 
-                  onClick={() => setConfirmDelete({ show: false, id: null })}
-                  className="w-full bg-slate-100 text-slate-500 font-bold py-4 rounded-2xl hover:bg-slate-200 transition-all"
-                >
-                  CANCELAR
-                </button>
+                <button onClick={executeDelete} className="w-full bg-red-500 text-white font-bold py-4 rounded-2xl shadow-lg uppercase text-xs tracking-widest">SÍ, ELIMINAR AHORA</button>
+                <button onClick={() => setConfirmDelete({ show: false, id: null })} className="w-full bg-slate-100 text-slate-500 font-bold py-4 rounded-2xl uppercase text-xs tracking-widest">CANCELAR</button>
               </div>
             </motion.div>
           </div>
@@ -156,7 +153,7 @@ export const PraisesForm = ({ onBack }: PraisesFormProps) => {
 
         <button 
           onClick={() => setShowHistory(true)}
-          className="flex items-center gap-2 bg-white/50 text-[#1b3a4a] px-4 py-2 rounded-xl text-xs font-black hover:bg-white transition-all shadow-sm border border-slate-200"
+          className="flex items-center gap-2 bg-white/50 text-[#1b3a4a] px-4 py-2 rounded-xl text-[10px] font-black hover:bg-white transition-all shadow-sm border border-slate-200 uppercase tracking-widest"
         >
           <Settings className="w-4 h-4" /> ADMINISTRAR HISTORIAL
         </button>
@@ -170,7 +167,7 @@ export const PraisesForm = ({ onBack }: PraisesFormProps) => {
           <input 
             type="text" className="w-full bg-white rounded-2xl px-6 py-4 outline-none text-slate-800 shadow-inner"
             placeholder="Nombre de la canción..."
-            value={form.titulo} onChange={(e) => setForm({...form, titulo: e.target.value})}
+            value={form.titulo || ''} onChange={(e) => onChange('titulo' as keyof FormState, e.target.value)}
           />
         </div>
 
@@ -181,7 +178,7 @@ export const PraisesForm = ({ onBack }: PraisesFormProps) => {
           <textarea 
             rows={10} className="w-full bg-white rounded-2xl px-6 py-4 outline-none resize-none text-slate-800 leading-relaxed shadow-inner"
             placeholder="Escribe o pega la letra aquí..."
-            value={form.letra} onChange={(e) => setForm({...form, letra: e.target.value})}
+            value={form.letra || ''} onChange={(e) => onChange('letra' as keyof FormState, e.target.value)}
           />
         </div>
       </div>
@@ -189,22 +186,22 @@ export const PraisesForm = ({ onBack }: PraisesFormProps) => {
       <div className="mt-12 flex flex-col items-center gap-4">
         <button 
           onClick={handlePublish} disabled={isSubmitting}
-          className="w-full max-w-md bg-[#1b3a4a] text-white font-bold py-5 rounded-[1.5rem] shadow-xl flex items-center justify-center gap-3 hover:bg-[#152e3b] active:scale-95 transition-all disabled:opacity-50"
+          className="w-full max-w-md bg-[#1b3a4a] text-white font-bold py-5 rounded-[1.5rem] shadow-xl flex items-center justify-center gap-3 hover:bg-[#152e3b] transition-all disabled:opacity-50 uppercase text-xs tracking-widest"
         >
           {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
           {editingId ? 'GUARDAR CAMBIOS' : 'PUBLICAR ALABANZA'}
         </button>
         {editingId && (
           <button 
-            onClick={() => { setEditingId(null); setForm({ titulo: '', letra: '' }); }} 
-            className="text-[#1b3a4a] text-xs font-bold underline cursor-pointer"
+            onClick={resetLocalForm} 
+            className="text-[#1b3a4a] text-xs font-black uppercase tracking-widest opacity-70 hover:opacity-100 underline"
           >
-            Cancelar Edición
+            ✕ Cancelar Edición
           </button>
         )}
       </div>
 
-      {/* MODAL DE HISTORIAL */}
+      {/* MODAL HISTORIAL */}
       <AnimatePresence>
         {showHistory && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1b3a4a]/60 backdrop-blur-md">
@@ -216,30 +213,26 @@ export const PraisesForm = ({ onBack }: PraisesFormProps) => {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input 
                       type="text" placeholder="Buscar por título..." 
-                      className="w-full bg-white border border-slate-200 rounded-2xl pl-12 pr-4 py-3 text-sm outline-none shadow-sm focus:border-[#85A3A5] transition-all"
+                      className="w-full bg-white border border-slate-200 rounded-2xl pl-12 pr-4 py-3 text-sm outline-none shadow-sm"
                       value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </div>
                 </div>
-                <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-slate-200 rounded-full transition-all shrink-0">
+                <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-slate-200 rounded-full transition-all">
                   <X className="w-6 h-6 text-slate-400" />
                 </button>
               </div>
 
               <div className="p-6 overflow-y-auto space-y-4">
                 {filteredAlabanzas.length > 0 ? filteredAlabanzas.map((item) => (
-                  <div key={item.id} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex justify-between items-center text-left hover:bg-white transition-all shadow-sm">
-                    <div className="overflow-hidden pr-4">
+                  <div key={item.id} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex justify-between items-center hover:bg-white transition-all shadow-sm">
+                    <div className="overflow-hidden pr-4 text-left">
                       <h4 className="text-sm font-black text-[#1b3a4a] truncate uppercase tracking-tight">{item.titulo}</h4>
-                      <p className="text-slate-400 text-[10px] truncate font-medium uppercase tracking-widest">{item.letra.substring(0, 60)}...</p>
+                      <p className="text-slate-400 text-[10px] truncate font-medium uppercase tracking-widest">{item.letra?.substring(0, 60)}...</p>
                     </div>
                     <div className="flex gap-2 shrink-0">
-                      <button onClick={() => startEditing(item)} className="p-3 text-blue-500 hover:bg-blue-50 rounded-2xl transition-all">
-                        <Edit3 className="w-5 h-5" />
-                      </button>
-                      <button onClick={() => setConfirmDelete({ show: true, id: item.id })} className="p-3 text-red-400 hover:bg-red-50 rounded-2xl transition-all">
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                      <button onClick={() => startEditing(item)} className="p-3 text-blue-500 hover:bg-blue-50 rounded-2xl transition-all"><Edit3 className="w-5 h-5" /></button>
+                      <button onClick={() => setConfirmDelete({ show: true, id: item.id })} className="p-3 text-red-400 hover:bg-red-50 rounded-2xl transition-all"><Trash2 className="w-5 h-5" /></button>
                     </div>
                   </div>
                 )) : (
