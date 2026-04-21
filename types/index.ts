@@ -15,6 +15,7 @@ export interface FormState {
   urgencia: string;
   vigencia: string;
   fechaExpiracion: string;
+  fechaPublicacion: string;
   fechaPersonalizada: string;
   reflexion: string;
   fechaDevocional: string;
