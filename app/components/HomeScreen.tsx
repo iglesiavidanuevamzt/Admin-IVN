@@ -2,10 +2,11 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Search, Music } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { Screen } from '../../types';
 
 export const HomeScreen = ({ onNavigate }: { onNavigate: (s: Screen) => void }) => {
+  // Definimos las tarjetas usando solo rutas de imagen (iconPath)
   const adminCards: { id: Screen; title: string; iconPath: string }[] = [
     {
       id: 'devocional',
@@ -20,7 +21,7 @@ export const HomeScreen = ({ onNavigate }: { onNavigate: (s: Screen) => void }) 
     {
       id: 'alabanzas', 
       title: 'Alabanzas',
-      iconPath: '/icons/logo_alabanzas.png'
+      iconPath: '/icons/alabanza.png' 
     },
     {
       id: 'agenda-view', 
@@ -61,37 +62,22 @@ export const HomeScreen = ({ onNavigate }: { onNavigate: (s: Screen) => void }) 
 
         {/* Grid 2x2 de Botones */}
         <div className="grid grid-cols-2 gap-6 w-full">
-          {adminCards.map((card, index) => (
+          {adminCards.map((card) => (
             <motion.button 
               key={card.id}
               whileTap={{ scale: 0.9 }}
               onClick={() => onNavigate(card.id)}
               className="flex flex-col items-center group w-full"
             >
-              {/*<div className="w-full aspect-square bg-[#1b3a4a] rounded-[1.8rem] flex items-center justify-center p-5 shadow-lg shadow-[#1b3a4a]/20 group-hover:bg-[#2a4d5f] transition-colors overflow-hidden">
-                {card.id === 'alabanzas' ? (
-                  <Music className="w-16 h-16 text-white" strokeWidth={1.5} />
-                ) : (
-                  <img 
-                    src={card.iconPath} 
-                    alt={card.title}
-                    className="w-full h-full object-contain"
-                  />
-                )}
-              </div> */}
-
-              <div className="w-full aspect-square bg-[#1b3a4a] rounded-[1.8rem] flex items-center justify-center p-5">
-                {card.id === 'alabanzas' ? (
-                  /* Si es alabanzas, mostramos tu imagen personalizada */
-                  <img 
-                    src="/icons/alabanza.png" 
-                    alt={card.title}
-                    className="w-full h-full object-contain"
-                  />
-                ) : (
-                  /* Para los demás, seguimos usando el componente Icon de Lucide */
-                  <card.icon className="w-16 h-16 text-white" strokeWidth={1.5} />
-                )}
+              <div className="w-full aspect-square bg-[#1b3a4a] rounded-[1.8rem] flex items-center justify-center p-5 shadow-lg shadow-[#1b3a4a]/20 group-hover:bg-[#2a4d5f] transition-colors overflow-hidden">
+                {/* SOLUCIÓN AL ERROR: 
+                   Usamos la imagen para todos. Ya no llamamos a card.icon 
+                */}
+                <img 
+                  src={card.iconPath} 
+                  alt={card.title}
+                  className="w-full h-full object-contain"
+                />
               </div>
               <span className="mt-3 text-[10px] font-bold uppercase tracking-widest text-[#1b3a4a]">
                 {card.title}
