@@ -6,7 +6,7 @@ import { Search } from 'lucide-react';
 import { Screen } from '../../types';
 
 export const HomeScreen = ({ onNavigate }: { onNavigate: (s: Screen) => void }) => {
-  // Definimos las tarjetas usando solo rutas de imagen (iconPath)
+  // Definimos las tarjetas solo con iconPath para que no haya errores de tipos
   const adminCards: { id: Screen; title: string; iconPath: string }[] = [
     {
       id: 'devocional',
@@ -70,8 +70,8 @@ export const HomeScreen = ({ onNavigate }: { onNavigate: (s: Screen) => void }) 
               className="flex flex-col items-center group w-full"
             >
               <div className="w-full aspect-square bg-[#1b3a4a] rounded-[1.8rem] flex items-center justify-center p-5 shadow-lg shadow-[#1b3a4a]/20 group-hover:bg-[#2a4d5f] transition-colors overflow-hidden">
-                {/* SOLUCIÓN AL ERROR: 
-                   Usamos la imagen para todos. Ya no llamamos a card.icon 
+                {/* ELIMINAMOS EL IF/ELSE. 
+                   Ahora todas las tarjetas usan su iconPath sin excepción.
                 */}
                 <img 
                   src={card.iconPath} 
