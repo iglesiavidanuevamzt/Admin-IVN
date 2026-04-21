@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Search } from 'lucide-react';
+import { Search, Music } from 'lucide-react';
 import { Screen } from '../../types';
 
 export const HomeScreen = ({ onNavigate }: { onNavigate: (s: Screen) => void }) => {
@@ -18,13 +18,11 @@ export const HomeScreen = ({ onNavigate }: { onNavigate: (s: Screen) => void }) 
       iconPath: '/icons/logo_avisos.png'
     },
     {
-      // Cambiado a 'agenda' para que abra el AgendaForm de tu page.tsx
-      id: 'agenda', 
-      title: 'Eventos',
-      iconPath: '/icons/logo_eventos.png'
+      id: 'alabanzas', 
+      title: 'Alabanzas',
+      iconPath: '/icons/logo_alabanzas.png'
     },
     {
-      // Cambiado a 'agenda-view' para que abra el CalendarView de tu page.tsx
       id: 'agenda-view', 
       title: 'Agenda',
       iconPath: '/icons/logo_agenda.png'
@@ -71,11 +69,15 @@ export const HomeScreen = ({ onNavigate }: { onNavigate: (s: Screen) => void }) 
               className="flex flex-col items-center group w-full"
             >
               <div className="w-full aspect-square bg-[#1b3a4a] rounded-[1.8rem] flex items-center justify-center p-5 shadow-lg shadow-[#1b3a4a]/20 group-hover:bg-[#2a4d5f] transition-colors overflow-hidden">
-                <img 
-                  src={card.iconPath} 
-                  alt={card.title}
-                  className="w-full h-full object-contain"
-                />
+                {card.id === 'alabanzas' ? (
+                  <Music className="w-16 h-16 text-white" strokeWidth={1.5} />
+                ) : (
+                  <img 
+                    src={card.iconPath} 
+                    alt={card.title}
+                    className="w-full h-full object-contain"
+                  />
+                )}
               </div>
 
               <span className="mt-3 text-[10px] font-bold uppercase tracking-widest text-[#1b3a4a]">

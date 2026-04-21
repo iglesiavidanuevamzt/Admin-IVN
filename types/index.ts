@@ -4,7 +4,8 @@ export type Screen =
   | 'agenda'
   | 'avisos'
   | 'history'
-  | 'agenda-view';
+  | 'agenda-view'
+  | 'alabanzas';
 
 export interface FormState {
   id: string | null;
@@ -25,4 +26,5 @@ export interface FormState {
   publicarEnTablon: boolean;
   vigenciaAnuncio: string;
   imagen_url: string;
+  letra?: string;
 }

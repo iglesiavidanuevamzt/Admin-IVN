@@ -4,11 +4,9 @@ import React, { useState } from 'react';
 import { Navbar } from './components/Navbar';
 import { HomeScreen } from './components/HomeScreen';
 import { DevocionalForm } from './components/DevocionalForm';
-import { AgendaForm } from './components/AgendaForm';
 import { CaptureForm } from './components/CaptureForm'; 
 import { HistoryView } from './components/HistoryView'; 
-// NUEVA IMPORTACIÓN
-// NUEVA IMPORTACIÓN
+import { PraisesForm } from './components/PraisesForm';
 import { CalendarView } from './components/CalendarView'; 
 import { FormState, Screen } from '../types';
 
@@ -37,6 +35,11 @@ export default function AdminApp() {
         imagen_url: '', fechaExpiracion: getFechaHoy() 
       }));
     }
+    if (screen === 'alabanzas') {
+      setForm(prev => ({
+        ...prev, id: null, titulo: '', letra: ''
+      }));
+    }
     setCurrentScreen(screen);
   };
 
@@ -59,6 +62,10 @@ export default function AdminApp() {
         
         {currentScreen === 'devocional' && (
           <DevocionalForm form={form} onChange={updateForm} onBack={() => setCurrentScreen('home')} />
+        )}
+
+        {currentScreen === 'alabanzas' && (
+          <PraisesForm form={form} onChange={updateForm} onBack={() => setCurrentScreen('home')} />
         )}
         
         {currentScreen === 'agenda' && (

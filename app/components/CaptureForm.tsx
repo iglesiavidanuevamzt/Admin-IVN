@@ -20,26 +20,25 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   
-  // ESTADOS PARA EL MODAL
+  // ESTADOS PARA EL MODAL Y BORRADO
   const [showHistory, setShowHistory] = useState(false);
   const [historial, setHistorial] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
   const ministerios = [
     'General', 'Varones Vida Nueva', 'Mujeres Awaken VN', 
     'Jóvenes Awaken VN', 'Kids Awaken', 'Alabanza', 'Liderazgo'
   ];
 
-  // 1. CARGAR HISTORIAL (Ajustado a nombres reales de tu DB)
+  // 1. CARGAR HISTORIAL
   const fetchHistorial = async () => {
     const { data, error } = await supabase
       .from('anuncios')
       .select('*')
-      .order('creado_el', { ascending: false }); // Usamos creado_el según tu captura
+      .order('creado_el', { ascending: false });
     
-    if (error) {
-      console.error("Error cargando historial:", error.message);
-    }
+    if (error) console.error("Error cargando historial:", error.message);
     if (data) setHistorial(data);
   };
 
@@ -47,20 +46,27 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
     fetchHistorial();
   }, []);
 
-  // 2. CONFIGURACIÓN INICIAL / FECHA AUTOMÁTICA
+  // 2. CONFIGURACIÓN INICIAL / FECHAS AUTOMÁTICAS
+  const resetFormFields = () => {
+    const hoy = new Date().toISOString().split('T')[0]; 
+    setEditingId(null);
+    onChange('id', null);
+    onChange('titulo', '');
+    onChange('mensaje', '');
+    onChange('imagen_url', '');
+    onChange('ministerio', 'General');
+    onChange('urgencia', 'informativo');
+    onChange('fechaExpiracion', hoy);
+    onChange('fechaPublicacion', hoy);
+  };
+
   useEffect(() => {
     if (!form.id && !editingId) {
-      const hoy = new Date().toISOString().split('T')[0]; 
-      onChange('titulo', '');
-      onChange('mensaje', '');
-      onChange('imagen_url', '');
-      onChange('ministerio', 'General');
-      onChange('urgencia', 'informativo');
-      onChange('fechaExpiracion', hoy);
+      resetFormFields();
     }
   }, [form.id, editingId]);
 
-  // 3. LÓGICA DE EDICIÓN
+  // 3. LÓGICA DE EDICIÓN Y BORRADO
   const startEditing = (item: any) => {
     setEditingId(item.id);
     onChange('id', item.id);
@@ -68,17 +74,20 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
     onChange('mensaje', item.mensaje);
     onChange('ministerio', item.ministerio);
     onChange('urgencia', item.urgencia);
-    onChange('fechaExpiracion', item.fecha_expiracion); // Mapeo correcto de la DB
+    onChange('fechaExpiracion', item.fecha_expiracion);
+    onChange('fechaPublicacion', item.fecha_publicacion);
     onChange('imagen_url', item.imagen_url);
     setShowHistory(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const deleteItem = async (id: string) => {
-    if (confirm("¿Estás seguro de eliminar este aviso definitivamente?")) {
-      const { error } = await supabase.from('anuncios').delete().eq('id', id);
-      if (error) alert("No se pudo eliminar.");
-      else fetchHistorial();
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+    const { error } = await supabase.from('anuncios').delete().eq('id', itemToDelete);
+    if (error) alert("No se pudo eliminar.");
+    else {
+      setItemToDelete(null);
+      fetchHistorial();
     }
   };
 
@@ -103,7 +112,6 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
         .getPublicUrl(filePath);
 
       onChange('imagen_url', publicUrl);
-      
     } catch (err: any) {
       alert("Error al subir el diseño: " + err.message);
     } finally {
@@ -123,7 +131,8 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
         titulo: form.titulo,
         ministerio: form.ministerio || 'General',
         urgencia: form.urgencia || 'informativo',
-        fecha_expiracion: form.fechaExpiracion || null, // Coincide con tu columna
+        fecha_expiracion: form.fechaExpiracion || null,
+        fecha_publicacion: form.fechaPublicacion || null,
         imagen_url: form.imagen_url || '',
         mensaje: form.mensaje || '',
         vigencia: "24h"
@@ -144,15 +153,8 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000); 
       
-      setEditingId(null);
-      if (!form.id) {
-        onChange('titulo', '');
-        onChange('mensaje', '');
-        onChange('imagen_url', '');
-        onChange('fechaExpiracion', new Date().toISOString().split('T')[0]);
-      } else {
-        setTimeout(() => onBack(), 1500);
-      }
+      // Limpiar campos y mantenerse en la pantalla de captura
+      resetFormFields();
       fetchHistorial();
       
     } catch (err: any) {
@@ -165,6 +167,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="px-4 py-6 relative">
       
+      {/* MODAL DE ÉXITO AL GUARDAR */}
       <AnimatePresence>
         {showSuccess && (
           <motion.div initial={{ opacity: 0, y: -50, x: '-50%' }} animate={{ opacity: 1, y: 20, x: '-50%' }} exit={{ opacity: 0, y: -20, x: '-50%' }} className="fixed top-4 left-1/2 z-[100] flex items-center gap-4 bg-[#1b3a4a] border border-green-500/30 px-6 py-4 rounded-[2rem] shadow-2xl max-w-[calc(100vw-2rem)]">
@@ -174,6 +177,27 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
               <span className="text-white/60 text-[10px] uppercase font-black tracking-widest">Aviso procesado</span>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL DE CONFIRMACIÓN DE BORRADO */}
+      <AnimatePresence>
+        {itemToDelete && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#1b3a4a]/80 backdrop-blur-sm">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl text-center space-y-6">
+              <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto border border-red-100">
+                <AlertCircle className="w-8 h-8 text-red-500" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-[#1b3a4a] font-black text-xl uppercase tracking-tighter">¿Eliminar Registro?</h3>
+                <p className="text-slate-500 text-sm font-medium">Esta acción es permanente y no se podrá recuperar el contenido del aviso.</p>
+              </div>
+              <div className="flex flex-col gap-3">
+                <button onClick={confirmDelete} className="w-full bg-red-500 hover:bg-red-600 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-red-200 uppercase text-xs tracking-widest">Sí, eliminar ahora</button>
+                <button onClick={() => setItemToDelete(null)} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-black py-4 rounded-2xl transition-all uppercase text-xs tracking-widest">Cancelar</button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
@@ -191,6 +215,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
       </div>
 
       <div className="w-full max-w-full bg-[#85A3A5] rounded-[2.5rem] shadow-2xl p-6 sm:p-8 space-y-8 border border-white/20 text-left">
+        {/* DISEÑO GRÁFICO */}
         <div className="space-y-3">
           <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2">
             <ImageIcon className="w-3 h-3" /> DISEÑO GRÁFICO (JPG / PNG)
@@ -203,17 +228,17 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
 
         <div className="space-y-2">
           <label className="text-[10px] font-black uppercase text-white tracking-widest">ACTIVIDAD / EVENTO</label>
-          <input type="text" className="w-full max-w-full bg-white/90 rounded-2xl px-5 py-4 outline-none text-slate-800 box-border" value={form.titulo || ''} onChange={(e) => onChange('titulo', e.target.value)} />
+          <input type="text" className="w-full bg-white/90 rounded-2xl px-5 py-4 outline-none text-slate-800 border-none" value={form.titulo || ''} onChange={(e) => onChange('titulo', e.target.value)} />
         </div>
 
         <div className="space-y-2">
           <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2"><AlignLeft className="w-3 h-3" /> Descripción</label>
-          <textarea className="w-full max-w-full bg-white/90 rounded-2xl px-5 py-4 outline-none text-slate-800 min-h-[100px] resize-none box-border" value={form.mensaje || ''} onChange={(e) => onChange('mensaje', e.target.value)} />
+          <textarea className="w-full bg-white/90 rounded-2xl px-5 py-4 outline-none text-slate-800 min-h-[100px] resize-none border-none" value={form.mensaje || ''} onChange={(e) => onChange('mensaje', e.target.value)} />
         </div>
 
         <div className="space-y-2">
           <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2"><Users className="w-3 h-3" /> Ministerio Encargado</label>
-          <select className="w-full max-w-full bg-white/90 rounded-2xl px-5 py-4 outline-none appearance-none text-slate-700 box-border" value={form.ministerio || ''} onChange={(e) => onChange('ministerio', e.target.value)}>
+          <select className="w-full bg-white/90 rounded-2xl px-5 py-4 outline-none appearance-none text-slate-700 border-none" value={form.ministerio || ''} onChange={(e) => onChange('ministerio', e.target.value)}>
             {ministerios.map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
@@ -226,7 +251,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
               { id: 'importante', label: 'Imp', color: 'bg-amber-500', icon: AlertTriangle },
               { id: 'urgente', label: 'Urg', color: 'bg-red-600', icon: AlertCircle }
             ].map((u) => (
-              <button key={u.id} type="button" onClick={() => onChange('urgencia', u.id)} className={`flex flex-col items-center p-4 rounded-2xl border-2 transition-all ${form.urgencia === u.id ? `${u.color} border-white text-white` : 'bg-[#1b3a4a]/40 border-transparent text-white/50'}`}>
+              <button key={u.id} type="button" onClick={() => onChange('urgencia', u.id)} className={`flex flex-col items-center p-4 rounded-2xl border-2 transition-all ${form.urgencia === u.id ? `${u.color} border-white text-white shadow-lg` : 'bg-[#1b3a4a]/40 border-transparent text-white/50'}`}>
                 <u.icon className="w-6 h-6 mb-1" />
                 <span className="text-[8px] font-bold uppercase">{u.label}</span>
               </button>
@@ -234,26 +259,33 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
           </div>
         </div>
 
-        <div className="space-y-3">
-          <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2"><Calendar className="w-3 h-3" /> Fecha de Caducidad</label>
-          <input type="date" className="w-full max-w-full bg-white/90 rounded-2xl px-5 py-4 outline-none text-slate-700 box-border" value={form.fechaExpiracion || ''} onChange={(e) => onChange('fechaExpiracion', e.target.value)} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="space-y-3">
+            <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2"><Calendar className="w-3 h-3" /> Fecha de Publicación</label>
+            <input type="date" className="w-full bg-white/90 rounded-2xl px-5 py-4 outline-none text-slate-700 border-none" value={form.fechaPublicacion || ''} onChange={(e) => onChange('fechaPublicacion', e.target.value)} />
+          </div>
+          <div className="space-y-3">
+            <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2"><Calendar className="w-3 h-3" /> Fecha de Caducidad</label>
+            <input type="date" className="w-full bg-white/90 rounded-2xl px-5 py-4 outline-none text-slate-700 border-none" value={form.fechaExpiracion || ''} onChange={(e) => onChange('fechaExpiracion', e.target.value)} />
+          </div>
         </div>
       </div>
 
       <div className="mt-12 pb-10 flex flex-col items-center gap-4">
-        <button onClick={handlePublish} disabled={isSubmitting || uploading} className="w-full max-w-sm bg-[#1b3a4a] text-white font-bold py-5 rounded-[1.5rem] shadow-2xl flex items-center justify-center gap-3 transition-all">
+        <button onClick={handlePublish} disabled={isSubmitting || uploading} className="w-full max-w-sm bg-[#1b3a4a] text-white font-bold py-5 rounded-[1.5rem] shadow-2xl flex items-center justify-center gap-3 transition-all hover:bg-[#152d3a]">
           {isSubmitting ? <Loader2 className="animate-spin w-5 h-5" /> : <Send className="w-5 h-5" />}
           {isSubmitting ? 'Procesando...' : (editingId || form.id) ? 'Guardar Cambios' : 'Publicar Aviso'}
         </button>
         {(editingId) && (
-          <button onClick={() => { setEditingId(null); onChange('id', null); onChange('titulo', ''); }} className="text-[#1b3a4a] text-xs font-bold underline">Cancelar Edición</button>
+          <button onClick={resetFormFields} className="text-[#1b3a4a] text-xs font-bold underline">Cancelar Edición</button>
         )}
       </div>
 
+      {/* MODAL HISTORIAL */}
       <AnimatePresence>
         {showHistory && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1b3a4a]/60 backdrop-blur-md">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-full sm:max-w-2xl max-h-[80vh] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col mx-4 sm:mx-0">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-full sm:max-w-2xl max-h-[80vh] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col">
               <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                 <div>
                   <h3 className="font-black text-[#1b3a4a] text-lg tracking-tighter uppercase">Historial de Avisos</h3>
@@ -268,21 +300,17 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
                 {historial.length > 0 ? historial.map((item) => (
                   <div key={item.id} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex justify-between items-center group hover:bg-white hover:shadow-md transition-all text-left">
                     <div className="overflow-hidden">
-                      <span className="text-[10px] font-black text-[#85A3A5] tracking-widest">
-                        EXPIRA: {item.fecha_expiracion || 'SIN FECHA'}
+                      <span className="text-[10px] font-black text-[#85A3A5] tracking-widest uppercase">
+                        PUB: {item.fecha_publicacion || 'HOY'} | EXP: {item.fecha_expiracion || 'SIN FECHA'}
                       </span>
                       <p className="text-slate-600 text-sm truncate max-w-full font-medium uppercase">{item.titulo}</p>
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => startEditing(item)} className="p-3 text-blue-500 hover:bg-blue-50 rounded-2xl transition-all">
-                        <Edit3 className="w-5 h-5" />
-                      </button>
-                      <button onClick={() => deleteItem(item.id)} className="p-3 text-red-400 hover:bg-red-50 rounded-2xl transition-all">
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                      <button onClick={() => startEditing(item)} className="p-3 text-blue-500 hover:bg-blue-50 rounded-2xl transition-all"><Edit3 className="w-5 h-5" /></button>
+                      <button onClick={() => setItemToDelete(item.id)} className="p-3 text-red-400 hover:bg-red-50 rounded-2xl transition-all"><Trash2 className="w-5 h-5" /></button>
                     </div>
                   </div>
-                )) : <p className="text-center py-20 text-slate-400 italic">No hay avisos registrados.</p>}
+                )) : <p className="text-center py-20 text-slate-400 italic font-medium">No hay avisos registrados.</p>}
               </div>
             </motion.div>
           </div>
