@@ -16,12 +16,24 @@ export default function AdminApp() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
   
   const [form, setForm] = useState<FormState>({
-    id: null, titulo: '', ministerio: 'General', mensaje: '', 
-    urgencia: 'informativo', vigencia: '24h', fechaExpiracion: getFechaHoy(), 
-    fechaPersonalizada: '', reflexion: '', fechaDevocional: getFechaHoy(),
-    fechaEvento: getFechaHoy(), horaInicio: '', horaFin: '', 
-    descripcionEvento: '', descripcion: '', publicarEnTablon: false, 
-    vigenciaAnuncio: '24h', imagen_url: '' 
+    id: null,
+    titulo: '',
+    ministerio: 'General',
+    mensaje: '',
+    urgencia: 'informativo', 
+    vigencia: '24h', 
+    fechaExpiracion: getFechaHoy(),
+    fechaPublicacion: getFechaHoy(),
+    fechaPersonalizada: '',
+    reflexion: '',
+    fechaDevocional: getFechaHoy(),
+    fechaEvento: getFechaHoy(),
+    horaInicio: '', horaFin: '',
+    descripcionEvento: '',
+    descripcion: '',
+    publicarEnTablon: false,
+    vigenciaAnuncio: '24h',
+    imagen_url: ''
   });
 
   const updateForm = (field: keyof FormState, value: any) => {
