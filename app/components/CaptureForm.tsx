@@ -46,18 +46,18 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
     fetchHistorial();
   }, []);
 
-  // 2. CONFIGURACIÓN INICIAL / FECHAS AUTOMÁTICAS
+  // 2. CONFIGURACIÓN INICIAL / FECHAS AUTOMÁTICAS CON CORRECCIÓN DE TIPOS
   const resetFormFields = () => {
     const hoy = new Date().toISOString().split('T')[0]; 
     setEditingId(null);
-    onChange('id', null);
-    onChange('titulo', '');
-    onChange('mensaje', '');
-    onChange('imagen_url', '');
-    onChange('ministerio', 'General');
-    onChange('urgencia', 'informativo');
-    onChange('fechaExpiracion', hoy);
-    onChange('fechaPublicacion', hoy);
+    onChange('id' as keyof FormState, null);
+    onChange('titulo' as keyof FormState, '');
+    onChange('mensaje' as keyof FormState, '');
+    onChange('imagen_url' as keyof FormState, '');
+    onChange('ministerio' as keyof FormState, 'General');
+    onChange('urgencia' as keyof FormState, 'informativo');
+    onChange('fechaExpiracion' as keyof FormState, hoy);
+    onChange('fechaPublicacion' as keyof FormState, hoy);
   };
 
   useEffect(() => {
@@ -69,14 +69,14 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
   // 3. LÓGICA DE EDICIÓN Y BORRADO
   const startEditing = (item: any) => {
     setEditingId(item.id);
-    onChange('id', item.id);
-    onChange('titulo', item.titulo);
-    onChange('mensaje', item.mensaje);
-    onChange('ministerio', item.ministerio);
-    onChange('urgencia', item.urgencia);
-    onChange('fechaExpiracion', item.fecha_expiracion);
-    onChange('fechaPublicacion', item.fecha_publicacion);
-    onChange('imagen_url', item.imagen_url);
+    onChange('id' as keyof FormState, item.id);
+    onChange('titulo' as keyof FormState, item.titulo);
+    onChange('mensaje' as keyof FormState, item.mensaje);
+    onChange('ministerio' as keyof FormState, item.ministerio);
+    onChange('urgencia' as keyof FormState, item.urgencia);
+    onChange('fechaExpiracion' as keyof FormState, item.fecha_expiracion);
+    onChange('fechaPublicacion' as keyof FormState, item.fecha_publicacion);
+    onChange('imagen_url' as keyof FormState, item.imagen_url);
     setShowHistory(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -111,7 +111,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
         .from('assets')
         .getPublicUrl(filePath);
 
-      onChange('imagen_url', publicUrl);
+      onChange('imagen_url' as keyof FormState, publicUrl);
     } catch (err: any) {
       alert("Error al subir el diseño: " + err.message);
     } finally {
@@ -153,7 +153,6 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000); 
       
-      // Limpiar campos y mantenerse en la pantalla de captura
       resetFormFields();
       fetchHistorial();
       
@@ -167,7 +166,6 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="px-4 py-6 relative">
       
-      {/* MODAL DE ÉXITO AL GUARDAR */}
       <AnimatePresence>
         {showSuccess && (
           <motion.div initial={{ opacity: 0, y: -50, x: '-50%' }} animate={{ opacity: 1, y: 20, x: '-50%' }} exit={{ opacity: 0, y: -20, x: '-50%' }} className="fixed top-4 left-1/2 z-[100] flex items-center gap-4 bg-[#1b3a4a] border border-green-500/30 px-6 py-4 rounded-[2rem] shadow-2xl max-w-[calc(100vw-2rem)]">
@@ -180,7 +178,6 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
         )}
       </AnimatePresence>
 
-      {/* MODAL DE CONFIRMACIÓN DE BORRADO */}
       <AnimatePresence>
         {itemToDelete && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#1b3a4a]/80 backdrop-blur-sm">
@@ -215,7 +212,6 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
       </div>
 
       <div className="w-full max-w-full bg-[#85A3A5] rounded-[2.5rem] shadow-2xl p-6 sm:p-8 space-y-8 border border-white/20 text-left">
-        {/* DISEÑO GRÁFICO */}
         <div className="space-y-3">
           <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2">
             <ImageIcon className="w-3 h-3" /> DISEÑO GRÁFICO (JPG / PNG)
@@ -277,11 +273,10 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
           {isSubmitting ? 'Procesando...' : (editingId || form.id) ? 'Guardar Cambios' : 'Publicar Aviso'}
         </button>
         {(editingId) && (
-          <button onClick={resetFormFields} className="text-[#1b3a4a] text-xs font-bold underline">Cancelar Edición</button>
+          <button onClick={resetFormFields} className="text-[#1b3a4a] text-xs font-black uppercase tracking-widest opacity-70 hover:opacity-100 transition-all mt-2">✕ Cancelar y Limpiar Campos</button>
         )}
       </div>
 
-      {/* MODAL HISTORIAL */}
       <AnimatePresence>
         {showHistory && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1b3a4a]/60 backdrop-blur-md">
