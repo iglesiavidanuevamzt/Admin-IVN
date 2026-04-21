@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -19,7 +21,6 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
   const [historial, setHistorial] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   
-  // Estados para Toasts y Confirmación
   const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'delete' }>({
     show: false, message: '', type: 'success'
   });
@@ -27,7 +28,6 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
     show: false, id: null
   });
 
-  // Inicializar fecha de hoy
   useEffect(() => {
     if (!editingId && !form.fechaDevocional) {
       const today = new Date().toISOString().split('T')[0];
@@ -82,7 +82,6 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
     }
   };
 
-  // Función de borrado real
   const executeDelete = async () => {
     if (!confirmDelete.id) return;
     try {
@@ -107,7 +106,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-4 py-6 w-full relative">
       
-      {/* NOTIFICACIONES (TOASTS) */}
+      {/* NOTIFICACIONES */}
       <AnimatePresence>
         {toast.show && (
           <motion.div 
@@ -125,7 +124,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
         )}
       </AnimatePresence>
 
-      {/* MODAL DE CONFIRMACIÓN DE BORRADO ESTÉTICO */}
+      {/* MODAL DE CONFIRMACIÓN */}
       <AnimatePresence>
         {confirmDelete.show && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
@@ -139,16 +138,10 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
               <p className="text-slate-500 text-sm mb-8 leading-relaxed">Esta acción es permanente y no se podrá recuperar el contenido del devocional.</p>
               
               <div className="flex flex-col gap-3">
-                <button 
-                  onClick={executeDelete}
-                  className="w-full bg-red-500 text-white font-bold py-4 rounded-2xl hover:bg-red-600 transition-all shadow-lg shadow-red-200"
-                >
+                <button onClick={executeDelete} className="w-full bg-red-500 text-white font-bold py-4 rounded-2xl hover:bg-red-600 transition-all shadow-lg shadow-red-200">
                   SÍ, ELIMINAR AHORA
                 </button>
-                <button 
-                  onClick={() => setConfirmDelete({ show: false, id: null })}
-                  className="w-full bg-slate-100 text-slate-500 font-bold py-4 rounded-2xl hover:bg-slate-200 transition-all"
-                >
+                <button onClick={() => setConfirmDelete({ show: false, id: null })} className="w-full bg-slate-100 text-slate-500 font-bold py-4 rounded-2xl hover:bg-slate-200 transition-all">
                   CANCELAR
                 </button>
               </div>
@@ -167,7 +160,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
         </button>
       </div>
 
-      {/* FORMULARIO PRINCIPAL */}
+      {/* FORMULARIO */}
       <div className="w-full bg-[#85A3A5] rounded-[2.5rem] shadow-2xl p-6 sm:p-10 space-y-8 text-left border border-white/10">
         <div className="space-y-3">
           <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/90">
@@ -199,7 +192,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
         )}
       </div>
 
-      {/* MODAL DE HISTORIAL */}
+      {/* MODAL DE HISTORIAL CORREGIDO */}
       <AnimatePresence>
         {showHistory && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1b3a4a]/60 backdrop-blur-md">
@@ -213,14 +206,22 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
               </div>
               <div className="p-6 overflow-y-auto space-y-4">
                 {historial.length > 0 ? historial.map((item) => (
-                  <div key={item.id} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex justify-between items-center text-left hover:bg-white transition-all shadow-sm">
-                    <div className="overflow-hidden pr-4">
-                      <span className="text-[10px] font-black text-[#85A3A5] tracking-widest uppercase">{item.fecha}</span>
-                      <p className="text-slate-600 text-sm truncate font-medium">{item.reflexion}</p>
+                  <div key={item.id} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex justify-between items-center text-left hover:bg-white transition-all shadow-sm overflow-hidden">
+                    
+                    {/* CONTENEDOR DE TEXTO CON CORRECCIÓN DE DESBORDAMIENTO */}
+                    <div className="flex flex-col min-w-0 pr-4">
+                      <span className="text-[10px] font-black text-[#85A3A5] tracking-widest uppercase mb-1">
+                        {item.fecha}
+                      </span>
+                      <p className="text-slate-600 text-sm truncate font-medium">
+                        {item.reflexion}
+                      </p>
                     </div>
+
                     <div className="flex gap-2 shrink-0">
-                      <button onClick={() => startEditing(item)} className="p-3 text-blue-500 hover:bg-blue-50 rounded-2xl transition-all"><Edit3 className="w-5 h-5" /></button>
-                      {/* Al presionar aquí, abrimos el modal personalizado */}
+                      <button onClick={() => startEditing(item)} className="p-3 text-blue-500 hover:bg-blue-50 rounded-2xl transition-all">
+                        <Edit3 className="w-5 h-5" />
+                      </button>
                       <button onClick={() => setConfirmDelete({ show: true, id: item.id })} className="p-3 text-red-400 hover:bg-red-50 rounded-2xl transition-all">
                         <Trash2 className="w-5 h-5" />
                       </button>
