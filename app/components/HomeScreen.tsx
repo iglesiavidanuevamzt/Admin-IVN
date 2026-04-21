@@ -68,7 +68,7 @@ export const HomeScreen = ({ onNavigate }: { onNavigate: (s: Screen) => void }) 
               onClick={() => onNavigate(card.id)}
               className="flex flex-col items-center group w-full"
             >
-              <div className="w-full aspect-square bg-[#1b3a4a] rounded-[1.8rem] flex items-center justify-center p-5 shadow-lg shadow-[#1b3a4a]/20 group-hover:bg-[#2a4d5f] transition-colors overflow-hidden">
+              {/*<div className="w-full aspect-square bg-[#1b3a4a] rounded-[1.8rem] flex items-center justify-center p-5 shadow-lg shadow-[#1b3a4a]/20 group-hover:bg-[#2a4d5f] transition-colors overflow-hidden">
                 {card.id === 'alabanzas' ? (
                   <Music className="w-16 h-16 text-white" strokeWidth={1.5} />
                 ) : (
@@ -78,8 +78,21 @@ export const HomeScreen = ({ onNavigate }: { onNavigate: (s: Screen) => void }) 
                     className="w-full h-full object-contain"
                   />
                 )}
-              </div>
+              </div> */}
 
+              <div className="w-full aspect-square bg-[#1b3a4a] rounded-[1.8rem] flex items-center justify-center p-5">
+                {card.id === 'alabanzas' ? (
+                  /* Si es alabanzas, mostramos tu imagen personalizada */
+                  <img 
+                    src="/icons/alabanza.png" 
+                    alt={card.title}
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  /* Para los demás, seguimos usando el componente Icon de Lucide */
+                  <card.icon className="w-16 h-16 text-white" strokeWidth={1.5} />
+                )}
+              </div>
               <span className="mt-3 text-[10px] font-bold uppercase tracking-widest text-[#1b3a4a]">
                 {card.title}
               </span>
