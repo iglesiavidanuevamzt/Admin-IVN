@@ -1,6 +1,6 @@
-import type {Metadata} from 'next';
+import type { Metadata } from 'next';
 import { Inter, Crimson_Pro } from 'next/font/google';
-import './globals.css'; // Global styles
+import './globals.css'; 
 
 const inter = Inter({
   subsets: ['latin'],
@@ -13,14 +13,23 @@ const crimsonPro = Crimson_Pro({
 });
 
 export const metadata: Metadata = {
-  title: 'CoreBuilder CMS',
-  description: 'Professional Headless CMS Dashboard',
+  title: 'Vida Nueva Awaken - Admin',
+  description: 'Panel de Administración Profesional',
+  manifest: '/manifest.json', // Mantiene la conexión al manifest
+  icons: {
+    // Icono para la pestaña del navegador (puedes usar el mismo u otro)
+    icon: '/icons/favicon-optimized.png', 
+    // CRUCIAL: Este es el icono que usará el iPhone en el escritorio
+    apple: '/icons/favicon-optimized.png', 
+  },
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
-    <html lang="en" className={`${inter.variable} ${crimsonPro.variable}`}>
-      <body suppressHydrationWarning className="font-sans bg-[#FFFFFF] text-[#10172A]">{children}</body>
+    <html lang="es" className={`${inter.variable} ${crimsonPro.variable}`}>
+      <body suppressHydrationWarning className="font-sans bg-[#FFFFFF] text-[#10172A]">
+        {children}
+      </body>
     </html>
   );
 }

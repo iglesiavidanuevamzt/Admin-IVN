@@ -6,7 +6,6 @@ import { Search } from 'lucide-react';
 import { Screen } from '../../types';
 
 export const HomeScreen = ({ onNavigate }: { onNavigate: (s: Screen) => void }) => {
-  // Definimos las tarjetas solo con iconPath para que no haya errores de tipos
   const adminCards: { id: Screen; title: string; iconPath: string }[] = [
     {
       id: 'devocional',
@@ -33,24 +32,20 @@ export const HomeScreen = ({ onNavigate }: { onNavigate: (s: Screen) => void }) 
   return (
     <div className="fixed inset-0 bg-gradient-to-b from-[#f5eae1] via-[#e5dfda] to-[#122e43] flex flex-col items-center justify-center p-6">
       
-      {/* Buscador Superior */}
+      {/* Buscador */}
       <div className="absolute top-12 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm flex items-center bg-white/40 backdrop-blur-md px-5 py-3 rounded-full border border-white/20 shadow-sm">
         <Search className="w-5 h-5 text-slate-400 mr-3" />
         <span className="text-sm font-bold text-slate-400/80 uppercase tracking-widest">Buscar</span>
       </div>
 
-      {/* Saludo de Bienvenida */}
       <motion.div 
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         className="text-center mb-8 mt-12"
       >
-        <h1 className="font-serif text-3xl text-[#1b3a4a]">
-          ¡Administrador!
-        </h1>
+        <h1 className="font-serif text-3xl text-[#1b3a4a]">¡Administrador!</h1>
       </motion.div>
 
-      {/* Tarjeta de Contenedor de Acciones */}
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -60,7 +55,6 @@ export const HomeScreen = ({ onNavigate }: { onNavigate: (s: Screen) => void }) 
           ACCIONES RÁPIDAS
         </h2>
 
-        {/* Grid 2x2 de Botones */}
         <div className="grid grid-cols-2 gap-6 w-full">
           {adminCards.map((card) => (
             <motion.button 
@@ -70,9 +64,6 @@ export const HomeScreen = ({ onNavigate }: { onNavigate: (s: Screen) => void }) 
               className="flex flex-col items-center group w-full"
             >
               <div className="w-full aspect-square bg-[#1b3a4a] rounded-[1.8rem] flex items-center justify-center p-5 shadow-lg shadow-[#1b3a4a]/20 group-hover:bg-[#2a4d5f] transition-colors overflow-hidden">
-                {/* ELIMINAMOS EL IF/ELSE. 
-                   Ahora todas las tarjetas usan su iconPath sin excepción.
-                */}
                 <img 
                   src={card.iconPath} 
                   alt={card.title}
