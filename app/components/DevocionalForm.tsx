@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   BookOpen, Calendar, ArrowLeft, Send, 
   Loader2, Settings, X, Trash2, Edit3, 
-  CheckCircle, AlertTriangle, AlertCircle 
+  CheckCircle, AlertTriangle, AlertCircle, Copy
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { FormState } from '../../types';
@@ -25,6 +25,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
   // Modales de Comunicación
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showValidationModal, setShowValidationModal] = useState(false);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   
   const [confirmDelete, setConfirmDelete] = useState<{ show: boolean; id: string | null }>({
     show: false, id: null
@@ -53,9 +54,23 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
   useEffect(() => { fetchHistorial(); }, []);
 
   const handlePublish = async () => {
-    // VALIDACIÓN ESTÉTICA (Reemplaza alert)
+    // 1. VALIDACIÓN DE CAMPOS VACÍOS
     if (!form.fechaDevocional || !form.reflexion) {
       setShowValidationModal(true);
+      return;
+    }
+
+    // 2. VALIDACIÓN DE CONTENIDO REPETIDO
+    // Normalizamos: quitamos espacios extra y pasamos a minúsculas
+    const normalizar = (t: string) => t.replace(/\s+/g, ' ').trim().toLowerCase();
+    const contenidoActual = normalizar(form.reflexion || '');
+    
+    const esRepetido = historial.some(item => 
+      normalizar(item.reflexion) === contenidoActual && item.id !== editingId
+    );
+
+    if (esRepetido) {
+      setShowDuplicateModal(true);
       return;
     }
 
@@ -105,7 +120,30 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-4 py-6 w-full max-w-full overflow-x-hidden relative">
       
-      {/* MODAL DE VALIDACIÓN */}
+      {/* MODAL DE CONTENIDO REPETIDO (DUPLICADO) */}
+      <AnimatePresence>
+        {showDuplicateModal && (
+          <div className="fixed inset-0 z-[270] flex items-center justify-center p-4 bg-[#1b3a4a]/40 backdrop-blur-md">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 text-center border border-slate-100"
+            >
+              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Copy className="w-8 h-8 text-[#85A3A5]" />
+              </div>
+              <h3 className="text-[#1b3a4a] font-black text-xl mb-2 uppercase tracking-tighter">Devocional Repetido</h3>
+              <p className="text-slate-500 text-sm mb-8 leading-relaxed">Esta reflexión ya existe en tu historial. Para evitar duplicados, intenta redactar un mensaje diferente o editar el anterior.</p>
+              <button 
+                onClick={() => setShowDuplicateModal(false)} 
+                className="w-full bg-[#1b3a4a] text-white font-black py-4 rounded-2xl shadow-lg uppercase text-xs tracking-widest transition-all active:scale-95"
+              >
+                ENTENDIDO
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL DE VALIDACIÓN (CAMPOS VACÍOS) */}
       <AnimatePresence>
         {showValidationModal && (
           <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-[#1b3a4a]/40 backdrop-blur-sm">
@@ -117,12 +155,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
               </div>
               <h3 className="text-[#1b3a4a] font-black text-xl mb-2 uppercase tracking-tighter">Faltan Datos</h3>
               <p className="text-slate-500 text-sm mb-8 leading-relaxed">Necesitas seleccionar una fecha y escribir la reflexión diaria antes de publicar.</p>
-              <button 
-                onClick={() => setShowValidationModal(false)} 
-                className="w-full bg-[#1b3a4a] text-white font-black py-4 rounded-2xl shadow-lg uppercase text-xs tracking-widest transition-all active:scale-95"
-              >
-                ENTENDIDO
-              </button>
+              <button onClick={() => setShowValidationModal(false)} className="w-full bg-[#1b3a4a] text-white font-black py-4 rounded-2xl shadow-lg uppercase text-xs tracking-widest transition-all active:scale-95">ENTENDIDO</button>
             </motion.div>
           </div>
         )}
@@ -132,10 +165,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
       <AnimatePresence>
         {showSuccessModal && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-[#1b3a4a]/90 backdrop-blur-md">
-            <motion.div 
-              initial={{ scale: 0.8, opacity: 0 }} 
-              animate={{ scale: 1, opacity: 1 }} 
-              exit={{ scale: 0.8, opacity: 0 }}
+            <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }}
               className="bg-white rounded-[3rem] p-10 max-w-sm w-full shadow-2xl text-center space-y-8 border-4 border-green-500/20"
             >
               <div className="bg-green-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto shadow-inner">
@@ -143,16 +173,9 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
               </div>
               <div className="space-y-2">
                 <h3 className="text-[#1b3a4a] font-black text-2xl uppercase tracking-tighter">¡Publicado!</h3>
-                <p className="text-slate-500 font-medium text-sm px-4">
-                  La reflexión ha sido guardada y sincronizada correctamente en la plataforma.
-                </p>
+                <p className="text-slate-500 font-medium text-sm px-4">La reflexión ha sido guardada y sincronizada correctamente.</p>
               </div>
-              <button 
-                onClick={() => setShowSuccessModal(false)} 
-                className="w-full bg-green-600 text-white font-black py-5 rounded-[1.5rem] shadow-lg uppercase text-xs tracking-widest transition-all active:scale-95"
-              >
-                ENTENDIDO, GRACIAS
-              </button>
+              <button onClick={() => setShowSuccessModal(false)} className="w-full bg-green-600 text-white font-black py-5 rounded-[1.5rem] shadow-lg uppercase text-xs tracking-widest transition-all active:scale-95">ENTENDIDO, GRACIAS</button>
             </motion.div>
           </div>
         )}
@@ -169,7 +192,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
                 <AlertCircle className="w-8 h-8 text-red-500" />
               </div>
               <h3 className="text-[#1b3a4a] font-black text-xl mb-2 uppercase tracking-tight">¿Eliminar Registro?</h3>
-              <p className="text-slate-500 text-sm mb-8 leading-relaxed">Esta acción es permanente y no se podrá recuperar el contenido del devocional.</p>
+              <p className="text-slate-500 text-sm mb-8 leading-relaxed">Esta acción es permanente y no se podrá recuperar el contenido.</p>
               <div className="flex flex-col gap-3">
                 <button onClick={executeDelete} className="w-full bg-red-500 text-white font-black py-4 rounded-2xl shadow-lg uppercase text-xs tracking-widest active:scale-95 transition-all">SÍ, ELIMINAR</button>
                 <button onClick={() => setConfirmDelete({ show: false, id: null })} className="w-full bg-slate-100 text-slate-500 font-black py-4 rounded-2xl uppercase text-xs tracking-widest">CANCELAR</button>
@@ -179,7 +202,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
         )}
       </AnimatePresence>
 
-      {/* BOTONES SUPERIORES */}
+      {/* HEADER */}
       <div className="flex justify-between items-center mb-6">
         <button onClick={onBack} className="flex items-center gap-2 text-[#1b3a4a] font-bold text-sm">
           <ArrowLeft className="w-4 h-4" /> Volver
@@ -190,15 +213,14 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
       </div>
 
       {/* FORMULARIO */}
-      <div className="w-full bg-[#85A3A5] rounded-[2.5rem] shadow-2xl p-5 sm:p-8 space-y-6 text-left border border-white/10 overflow-hidden flex flex-col box-border">
-        
+      <div className="w-full bg-[#85A3A5] rounded-[2.5rem] shadow-2xl p-5 sm:p-8 space-y-6 text-left border border-white/10 flex flex-col box-border">
         <div className="flex flex-col w-full space-y-2">
           <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/90 ml-1">
             <Calendar className="w-3 h-3" /> FECHA DEL DEVOCIONAL
           </label>
           <input 
             type="date" 
-            className="bg-white border-none rounded-2xl px-6 py-4 outline-none text-slate-600 shadow-inner text-base font-bold block box-border w-full appearance-none" 
+            className="bg-white border-none rounded-2xl px-6 py-4 outline-none text-slate-600 shadow-inner text-base font-bold block w-full appearance-none" 
             value={form.fechaDevocional || ''} 
             onChange={(e) => onChange('fechaDevocional', e.target.value)} 
           />
@@ -210,7 +232,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
           </label>
           <textarea 
             rows={10} 
-            className="bg-white border-none rounded-2xl px-6 py-4 outline-none text-slate-800 leading-relaxed resize-none shadow-inner text-base block box-border w-full appearance-none placeholder:text-slate-300" 
+            className="bg-white border-none rounded-2xl px-6 py-4 outline-none text-slate-800 leading-relaxed resize-none shadow-inner text-base block w-full appearance-none placeholder:text-slate-300" 
             placeholder="Escribe la reflexión de hoy..."
             value={form.reflexion || ''} 
             onChange={(e) => onChange('reflexion', e.target.value)} 
@@ -218,6 +240,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
         </div>
       </div>
 
+      {/* BOTÓN DE ENVÍO */}
       <div className="mt-12 flex flex-col items-center gap-4">
         <button 
           onClick={handlePublish} disabled={isSubmitting}
