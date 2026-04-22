@@ -104,7 +104,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-4 py-6 w-full relative max-w-full overflow-hidden">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-4 py-6 w-full max-w-full overflow-x-hidden relative">
       
       {/* NOTIFICACIONES */}
       <AnimatePresence>
@@ -160,28 +160,30 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
         </button>
       </div>
 
-      {/* FORMULARIO - AJUSTE DE BOX-SIZING Y OVERFLOW */}
-      <div className="w-full bg-[#85A3A5] rounded-[2.5rem] shadow-2xl p-6 sm:p-10 space-y-8 text-left border border-white/10 box-border overflow-hidden">
-        <div className="space-y-3 w-full">
-          <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/90">
+      {/* FORMULARIO - AJUSTE FINAL DE ALINEACIÓN */}
+      <div className="w-full bg-[#85A3A5] rounded-[2.5rem] shadow-2xl p-5 space-y-6 text-left border border-white/10 overflow-hidden flex flex-col box-border">
+        
+        <div className="flex flex-col w-full">
+          <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/90 mb-2 ml-1">
             <Calendar className="w-3 h-3" /> FECHA DEL DEVOCIONAL
           </label>
-          {/* AQUÍ ESTÁ EL FIX CLAVE: box-border y max-w-full */}
           <input 
             type="date" 
-            className="w-full max-w-full bg-white border-none rounded-2xl px-6 py-4 outline-none text-slate-600 shadow-inner box-border" 
+            className="bg-white border-none rounded-2xl px-4 py-4 outline-none text-slate-600 shadow-inner text-base block box-border w-full appearance-none m-0" 
+            style={{ width: '100%', maxWidth: '100%' }}
             value={form.fechaDevocional || ''} 
             onChange={(e) => onChange('fechaDevocional', e.target.value)} 
           />
         </div>
 
-        <div className="space-y-3 w-full">
-          <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/90">
+        <div className="flex flex-col w-full">
+          <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/90 mb-2 ml-1">
             <BookOpen className="w-3 h-3" /> REFLEXIÓN DIARIA
           </label>
           <textarea 
             rows={12} 
-            className="w-full max-w-full bg-white border-none rounded-2xl px-6 py-4 outline-none text-slate-800 leading-relaxed resize-none shadow-inner box-border" 
+            className="bg-white border-none rounded-2xl px-4 py-4 outline-none text-slate-800 leading-relaxed resize-none shadow-inner text-base block box-border w-full appearance-none m-0" 
+            style={{ width: '100%', maxWidth: '100%' }}
             value={form.reflexion || ''} 
             onChange={(e) => onChange('reflexion', e.target.value)} 
           />
@@ -218,23 +220,13 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
               <div className="p-6 overflow-y-auto space-y-4">
                 {historial.length > 0 ? historial.map((item) => (
                   <div key={item.id} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex justify-between items-center text-left hover:bg-white transition-all shadow-sm overflow-hidden">
-                    
                     <div className="flex flex-col min-w-0 pr-4">
-                      <span className="text-[10px] font-black text-[#85A3A5] tracking-widest uppercase mb-1">
-                        {item.fecha}
-                      </span>
-                      <p className="text-slate-600 text-sm truncate font-medium">
-                        {item.reflexion}
-                      </p>
+                      <span className="text-[10px] font-black text-[#85A3A5] tracking-widest uppercase mb-1">{item.fecha}</span>
+                      <p className="text-slate-600 text-sm truncate font-medium">{item.reflexion}</p>
                     </div>
-
                     <div className="flex gap-2 shrink-0">
-                      <button onClick={() => startEditing(item)} className="p-3 text-blue-500 hover:bg-blue-50 rounded-2xl transition-all">
-                        <Edit3 className="w-5 h-5" />
-                      </button>
-                      <button onClick={() => setConfirmDelete({ show: true, id: item.id })} className="p-3 text-red-400 hover:bg-red-50 rounded-2xl transition-all">
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                      <button onClick={() => startEditing(item)} className="p-3 text-blue-500 hover:bg-blue-50 rounded-2xl transition-all"><Edit3 className="w-5 h-5" /></button>
+                      <button onClick={() => setConfirmDelete({ show: true, id: item.id })} className="p-3 text-red-400 hover:bg-red-50 rounded-2xl transition-all"><Trash2 className="w-5 h-5" /></button>
                     </div>
                   </div>
                 )) : (
