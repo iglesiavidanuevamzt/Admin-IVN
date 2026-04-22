@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Info, AlertTriangle, AlertCircle, Calendar, ArrowLeft, 
   Send, Users, ImageIcon, Upload, Loader2,
-  AlignLeft, History, X, Trash2, Edit3, Clock, CheckCircle 
+  AlignLeft, History, X, Trash2, Edit3, Clock, CheckCircle, Copy 
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { FormState } from '../../types';
@@ -24,6 +24,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
   // Estados para Modales Personalizados
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showValidationModal, setShowValidationModal] = useState(false);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false); // <--- NUEVO
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   const [showHistory, setShowHistory] = useState(false);
@@ -124,9 +125,22 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
   };
 
   const handlePublish = async () => {
-    // VALIDACIÓN ESTÉTICA: Reemplaza alert("Pon un título")
+    // 1. VALIDACIÓN DE CAMPO VACÍO
     if (!form.titulo) {
       setShowValidationModal(true);
+      return;
+    }
+
+    // 2. DETECCIÓN DE TÍTULO REPETIDO
+    const normalizar = (t: string) => t.replace(/\s+/g, ' ').trim().toLowerCase();
+    const tituloActual = normalizar(form.titulo);
+
+    const esRepetido = historial.some(item => 
+      normalizar(item.titulo) === tituloActual && item.id !== editingId
+    );
+
+    if (esRepetido) {
+      setShowDuplicateModal(true);
       return;
     }
 
@@ -161,7 +175,27 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-4 py-6 w-full max-w-full overflow-x-hidden relative">
       
-      {/* MODAL DE VALIDACIÓN (REEMPLAZA AL ALERT DE TÍTULO) */}
+      {/* MODAL: TÍTULO REPETIDO (DUPLICADO) */}
+      <AnimatePresence>
+        {showDuplicateModal && (
+          <div className="fixed inset-0 z-[270] flex items-center justify-center p-4 bg-[#1b3a4a]/40 backdrop-blur-sm">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 text-center border border-slate-100"
+            >
+              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Copy className="w-8 h-8 text-[#85A3A5]" />
+              </div>
+              <h3 className="text-[#1b3a4a] font-black text-xl mb-2 uppercase tracking-tighter">Título en uso</h3>
+              <p className="text-slate-500 text-sm mb-8 leading-relaxed px-2">Ya existe una actividad con este nombre. Intenta usar un título más específico o editar el existente.</p>
+              <button onClick={() => setShowDuplicateModal(false)} className="w-full bg-[#1b3a4a] text-white font-black py-4 rounded-2xl shadow-lg uppercase text-xs tracking-widest transition-all active:scale-95">
+                ENTENDIDO
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL DE VALIDACIÓN (CAMPOS VACÍOS) */}
       <AnimatePresence>
         {showValidationModal && (
           <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-[#1b3a4a]/40 backdrop-blur-sm">
@@ -181,7 +215,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
         )}
       </AnimatePresence>
 
-      {/* MODAL DE ERROR (PARA FALLOS DE SUPABASE O CARGA) */}
+      {/* MODAL DE ERROR */}
       <AnimatePresence>
         {errorMessage && (
           <div className="fixed inset-0 z-[260] flex items-center justify-center p-4 bg-red-500/20 backdrop-blur-sm">
