@@ -192,7 +192,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
         )}
       </div>
 
-      {/* MODAL DE HISTORIAL - CORRECCIÓN DE DESBORDAMIENTO APLICADA */}
+      {/* MODAL DE HISTORIAL - INTEGRADO Y CORREGIDO */}
       <AnimatePresence>
         {showHistory && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1b3a4a]/60 backdrop-blur-md">
@@ -208,7 +208,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
                 {historial.length > 0 ? historial.map((item) => (
                   <div key={item.id} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex justify-between items-center text-left hover:bg-white transition-all shadow-sm overflow-hidden">
                     
-                    {/* CONTENEDOR DE TEXTO MEJORADO PARA MÓVILES */}
+                    {/* CONTENEDOR DE TEXTO CON AJUSTES PARA DESBORDAMIENTO */}
                     <div className="flex flex-col min-w-0 pr-4">
                       <span className="text-[10px] font-black text-[#85A3A5] tracking-widest uppercase mb-1">
                         {item.fecha}
@@ -218,7 +218,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
                       </p>
                     </div>
 
-                    {/* BOTONES CON shrink-0 PARA QUE NO SE APLASTEN */}
+                    {/* BOTONES QUE NO SE DEFORMAN (shrink-0) */}
                     <div className="flex gap-2 shrink-0">
                       <button onClick={() => startEditing(item)} className="p-3 text-blue-500 hover:bg-blue-50 rounded-2xl transition-all">
                         <Edit3 className="w-5 h-5" />
