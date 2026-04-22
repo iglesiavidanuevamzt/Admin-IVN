@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Search } from 'lucide-react';
+// Se eliminó la importación de Search ya que no se usará
 import { Screen } from '../../types';
 
 export const HomeScreen = ({ onNavigate }: { onNavigate: (s: Screen) => void }) => {
@@ -32,16 +32,12 @@ export const HomeScreen = ({ onNavigate }: { onNavigate: (s: Screen) => void }) 
   return (
     <div className="fixed inset-0 bg-gradient-to-b from-[#f5eae1] via-[#e5dfda] to-[#122e43] flex flex-col items-center justify-center p-6">
       
-      {/* Buscador */}
-      <div className="absolute top-12 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm flex items-center bg-white/40 backdrop-blur-md px-5 py-3 rounded-full border border-white/20 shadow-sm">
-        <Search className="w-5 h-5 text-slate-400 mr-3" />
-        <span className="text-sm font-bold text-slate-400/80 uppercase tracking-widest">Buscar</span>
-      </div>
+      {/* Se eliminó el bloque del Buscador que estaba aquí */}
 
       <motion.div 
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-8 mt-12"
+        className="text-center mb-8"
       >
         <h1 className="font-serif text-3xl text-[#1b3a4a]">¡Administrador!</h1>
       </motion.div>
