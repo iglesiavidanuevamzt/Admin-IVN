@@ -118,7 +118,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
               </div>
               
               <div className="space-y-2">
-                <h3 className="text-[#1b3a4a] font-black text-2xl uppercase tracking-tighter">¡Devocional Listo!</h3>
+                <h3 className="text-[#1b3a4a] font-black text-2xl uppercase tracking-tighter">¡Devocional Publicado!</h3>
                 <p className="text-slate-500 font-medium text-sm px-4">
                   La reflexión ha sido guardada y sincronizada correctamente en la plataforma.
                 </p>
