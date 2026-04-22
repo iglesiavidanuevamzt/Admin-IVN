@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -20,7 +22,6 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   
-  // ESTADOS PARA EL MODAL Y BORRADO
   const [showHistory, setShowHistory] = useState(false);
   const [historial, setHistorial] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -31,7 +32,6 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
     'Jóvenes Awaken VN', 'Kids Awaken', 'Alabanza', 'Liderazgo'
   ];
 
-  // 1. CARGAR HISTORIAL
   const fetchHistorial = async () => {
     const { data, error } = await supabase
       .from('anuncios')
@@ -46,7 +46,6 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
     fetchHistorial();
   }, []);
 
-  // 2. CONFIGURACIÓN INICIAL / FECHAS AUTOMÁTICAS CON CORRECCIÓN DE TIPOS
   const resetFormFields = () => {
     const hoy = new Date().toISOString().split('T')[0]; 
     setEditingId(null);
@@ -56,7 +55,6 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
     onChange('imagen_url' as keyof FormState, '');
     onChange('ministerio' as keyof FormState, 'General');
     onChange('urgencia' as keyof FormState, 'informativo');
-    // Forzamos el tipo para evitar el error de compilación en Vercel
     onChange('fechaExpiracion' as keyof FormState, hoy);
     onChange('fechaPublicacion' as keyof FormState, hoy);
   };
@@ -67,7 +65,6 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
     }
   }, [form.id, editingId]);
 
-  // 3. LÓGICA DE EDICIÓN Y BORRADO
   const startEditing = (item: any) => {
     setEditingId(item.id);
     onChange('id' as keyof FormState, item.id);
@@ -132,7 +129,6 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
         titulo: form.titulo,
         ministerio: form.ministerio || 'General',
         urgencia: form.urgencia || 'informativo',
-        // Usamos la propiedad aunque TS se queje en el IDE, el casting en onChange ya lo resolvió
         fecha_expiracion: (form as any).fechaExpiracion || null,
         fecha_publicacion: (form as any).fechaPublicacion || null,
         imagen_url: form.imagen_url || '',
@@ -154,7 +150,6 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
       
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000); 
-      
       resetFormFields();
       fetchHistorial();
       
@@ -166,20 +161,22 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="px-4 py-6 relative">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-4 py-6 w-full max-w-full overflow-x-hidden relative">
       
+      {/* NOTIFICACIÓN DE ÉXITO */}
       <AnimatePresence>
         {showSuccess && (
-          <motion.div initial={{ opacity: 0, y: -50, x: '-50%' }} animate={{ opacity: 1, y: 20, x: '-50%' }} exit={{ opacity: 0, y: -20, x: '-50%' }} className="fixed top-4 left-1/2 z-[100] flex items-center gap-4 bg-[#1b3a4a] border border-green-500/30 px-6 py-4 rounded-[2rem] shadow-2xl max-w-[calc(100vw-2rem)]">
+          <motion.div initial={{ opacity: 0, y: -50, x: '-50%' }} animate={{ opacity: 1, y: 20, x: '-50%' }} exit={{ opacity: 0, y: -20, x: '-50%' }} className="fixed top-4 left-1/2 z-[100] flex items-center gap-4 bg-[#1b3a4a] border border-green-500/30 px-6 py-4 rounded-[2rem] shadow-2xl min-w-[280px]">
             <CheckCircle2 className="w-6 h-6 text-green-400" />
-            <div className="flex flex-col text-left">
-              <span className="text-white font-bold text-sm">¡Hecho!</span>
-              <span className="text-white/60 text-[10px] uppercase font-black tracking-widest">Aviso procesado</span>
+            <div className="flex flex-col text-left text-white">
+              <span className="font-bold text-sm">¡Hecho!</span>
+              <span className="text-[10px] uppercase font-black tracking-widest text-white/60">Aviso procesado</span>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
+      {/* MODAL DE ELIMINAR */}
       <AnimatePresence>
         {itemToDelete && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#1b3a4a]/80 backdrop-blur-sm">
@@ -189,60 +186,85 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
               </div>
               <div className="space-y-2">
                 <h3 className="text-[#1b3a4a] font-black text-xl uppercase tracking-tighter">¿Eliminar Registro?</h3>
-                <p className="text-slate-500 text-sm font-medium">Esta acción es permanente y no se podrá recuperar el contenido del aviso.</p>
+                <p className="text-slate-500 text-sm font-medium">Esta acción es permanente y no se podrá recuperar el contenido.</p>
               </div>
               <div className="flex flex-col gap-3">
-                <button onClick={confirmDelete} className="w-full bg-red-500 hover:bg-red-600 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-red-200 uppercase text-xs tracking-widest">Sí, eliminar ahora</button>
-                <button onClick={() => setItemToDelete(null)} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-black py-4 rounded-2xl transition-all uppercase text-xs tracking-widest">Cancelar</button>
+                <button onClick={confirmDelete} className="w-full bg-red-500 text-white font-black py-4 rounded-2xl shadow-lg uppercase text-xs tracking-widest">Sí, eliminar ahora</button>
+                <button onClick={() => setItemToDelete(null)} className="w-full bg-slate-100 text-slate-600 font-black py-4 rounded-2xl uppercase text-xs tracking-widest">Cancelar</button>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
+      {/* BOTONES SUPERIORES */}
       <div className="flex items-center justify-between mb-6">
-        <button onClick={onBack} className="flex items-center gap-2 text-[#1b3a4a] font-bold text-sm hover:underline">
-          <ArrowLeft className="w-4 h-4" /> Volver al Panel
+        <button onClick={onBack} className="flex items-center gap-2 text-[#1b3a4a] font-bold text-sm">
+          <ArrowLeft className="w-4 h-4" /> Volver
         </button>
-
         <button 
           onClick={() => setShowHistory(true)} 
-          className="flex items-center gap-2 bg-[#1b3a4a] hover:bg-[#152d3a] text-white px-5 py-2.5 rounded-full transition-all text-[10px] font-black uppercase tracking-widest shadow-lg"
+          className="flex items-center gap-2 bg-[#1b3a4a] text-white px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg"
         >
-          <History className="w-4 h-4" /> Administrar Historial
+          <History className="w-4 h-4" /> Historial
         </button>
       </div>
 
-      <div className="w-full max-w-full bg-[#85A3A5] rounded-[2.5rem] shadow-2xl p-6 sm:p-8 space-y-8 border border-white/20 text-left">
-        <div className="space-y-3">
-          <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2">
+      {/* CONTENEDOR PRINCIPAL - FIX DE DESBORDAMIENTO */}
+      <div className="w-full max-w-full bg-[#85A3A5] rounded-[2.5rem] shadow-2xl p-5 sm:p-8 space-y-6 border border-white/20 text-left overflow-hidden flex flex-col box-border">
+        
+        <div className="space-y-3 w-full">
+          <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2 ml-1">
             <ImageIcon className="w-3 h-3" /> DISEÑO GRÁFICO (JPG / PNG)
           </label>
-          <div className="relative border-2 border-dashed border-white/40 rounded-3xl h-44 flex flex-col items-center justify-center bg-white/5 overflow-hidden">
+          <div className="relative border-2 border-dashed border-white/40 rounded-3xl h-44 flex flex-col items-center justify-center bg-white/5 overflow-hidden box-border">
             <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={handleFileUpload} disabled={uploading} />
             {uploading ? <Loader2 className="animate-spin text-white w-8 h-8" /> : form.imagen_url ? <img src={form.imagen_url} alt="Preview" className="w-full h-full object-cover" /> : <Upload className="text-white w-8 h-8 opacity-60" />}
           </div>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase text-white tracking-widest">ACTIVIDAD / EVENTO</label>
-          <input type="text" className="w-full bg-white/90 rounded-2xl px-5 py-4 outline-none text-slate-800 border-none" value={form.titulo || ''} onChange={(e) => onChange('titulo', e.target.value)} />
+        <div className="space-y-2 w-full">
+          <label className="text-[10px] font-black uppercase text-white tracking-widest ml-1">ACTIVIDAD / EVENTO</label>
+          <input 
+            type="text" 
+            className="w-full bg-white border-none rounded-2xl px-5 py-4 outline-none text-slate-800 text-base box-border appearance-none m-0 block" 
+            style={{ width: '100%' }}
+            value={form.titulo || ''} 
+            onChange={(e) => onChange('titulo', e.target.value)} 
+          />
         </div>
 
-        <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2"><AlignLeft className="w-3 h-3" /> Descripción</label>
-          <textarea className="w-full bg-white/90 rounded-2xl px-5 py-4 outline-none text-slate-800 min-h-[100px] resize-none border-none" value={form.mensaje || ''} onChange={(e) => onChange('mensaje', e.target.value)} />
+        <div className="space-y-2 w-full">
+          <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2 ml-1">
+            <AlignLeft className="w-3 h-3" /> Descripción
+          </label>
+          <textarea 
+            className="w-full bg-white border-none rounded-2xl px-5 py-4 outline-none text-slate-800 min-h-[100px] text-base box-border appearance-none m-0 block resize-none" 
+            style={{ width: '100%' }}
+            value={form.mensaje || ''} 
+            onChange={(e) => onChange('mensaje', e.target.value)} 
+          />
         </div>
 
-        <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2"><Users className="w-3 h-3" /> Ministerio Encargado</label>
-          <select className="w-full bg-white/90 rounded-2xl px-5 py-4 outline-none appearance-none text-slate-700 border-none" value={form.ministerio || ''} onChange={(e) => onChange('ministerio', e.target.value)}>
-            {ministerios.map((m) => <option key={m} value={m}>{m}</option>)}
-          </select>
+        <div className="space-y-2 w-full">
+          <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2 ml-1">
+            <Users className="w-3 h-3" /> Ministerio Encargado
+          </label>
+          <div className="relative w-full">
+            <select 
+              className="w-full bg-white border-none rounded-2xl px-5 py-4 outline-none appearance-none text-slate-700 text-base box-border block m-0" 
+              style={{ width: '100%' }}
+              value={form.ministerio || ''} 
+              onChange={(e) => onChange('ministerio', e.target.value)}
+            >
+              {ministerios.map((m) => <option key={m} value={m}>{m}</option>)}
+            </select>
+            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">▼</div>
+          </div>
         </div>
 
-        <div className="space-y-3">
-          <label className="text-[10px] font-black uppercase text-white tracking-widest">Nivel de Urgencia</label>
+        <div className="space-y-3 w-full">
+          <label className="text-[10px] font-black uppercase text-white tracking-widest ml-1">Nivel de Urgencia</label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[
               { id: 'informativo', label: 'Info', color: 'bg-green-600', icon: Info },
@@ -257,57 +279,75 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div className="space-y-3">
-            <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2"><Calendar className="w-3 h-3" /> Fecha de Publicación</label>
-            <input type="date" className="w-full bg-white/90 rounded-2xl px-5 py-4 outline-none text-slate-700 border-none" value={(form as any).fechaPublicacion || ''} onChange={(e) => onChange('fechaPublicacion' as keyof FormState, e.target.value)} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+          <div className="space-y-2 w-full">
+            <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2 ml-1">
+              <Calendar className="w-3 h-3" /> Publicación
+            </label>
+            <input 
+              type="date" 
+              className="w-full bg-white border-none rounded-2xl px-5 py-4 outline-none text-slate-700 text-base box-border appearance-none m-0 block" 
+              style={{ width: '100%' }}
+              value={(form as any).fechaPublicacion || ''} 
+              onChange={(e) => onChange('fechaPublicacion' as keyof FormState, e.target.value)} 
+            />
           </div>
-          <div className="space-y-3">
-            <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2"><Calendar className="w-3 h-3" /> Fecha de Caducidad</label>
-            <input type="date" className="w-full bg-white/90 rounded-2xl px-5 py-4 outline-none text-slate-700 border-none" value={(form as any).fechaExpiracion || ''} onChange={(e) => onChange('fechaExpiracion' as keyof FormState, e.target.value)} />
+          <div className="space-y-2 w-full">
+            <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2 ml-1">
+              <Calendar className="w-3 h-3" /> Caducidad
+            </label>
+            <input 
+              type="date" 
+              className="w-full bg-white border-none rounded-2xl px-5 py-4 outline-none text-slate-700 text-base box-border appearance-none m-0 block" 
+              style={{ width: '100%' }}
+              value={(form as any).fechaExpiracion || ''} 
+              onChange={(e) => onChange('fechaExpiracion' as keyof FormState, e.target.value)} 
+            />
           </div>
         </div>
       </div>
 
       <div className="mt-12 pb-10 flex flex-col items-center gap-4">
-        <button onClick={handlePublish} disabled={isSubmitting || uploading} className="w-full max-w-sm bg-[#1b3a4a] text-white font-bold py-5 rounded-[1.5rem] shadow-2xl flex items-center justify-center gap-3 transition-all hover:bg-[#152d3a]">
+        <button 
+          onClick={handlePublish} 
+          disabled={isSubmitting || uploading} 
+          className="w-full max-w-sm bg-[#1b3a4a] text-white font-bold py-5 rounded-[1.5rem] shadow-2xl flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50"
+        >
           {isSubmitting ? <Loader2 className="animate-spin w-5 h-5" /> : <Send className="w-5 h-5" />}
           {isSubmitting ? 'Procesando...' : (editingId || form.id) ? 'Guardar Cambios' : 'Publicar Aviso'}
         </button>
-        {(editingId) && (
-          <button onClick={resetFormFields} className="text-[#1b3a4a] text-xs font-black uppercase tracking-widest opacity-70 hover:opacity-100 transition-all mt-2">✕ Cancelar y Limpiar Campos</button>
+        {editingId && (
+          <button onClick={resetFormFields} className="text-[#1b3a4a] text-xs font-black uppercase tracking-widest opacity-70 mt-2">✕ Cancelar y Limpiar</button>
         )}
       </div>
 
+      {/* MODAL HISTORIAL */}
       <AnimatePresence>
         {showHistory && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1b3a4a]/60 backdrop-blur-md">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-full sm:max-w-2xl max-h-[80vh] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col">
-              <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                <div>
-                  <h3 className="font-black text-[#1b3a4a] text-lg tracking-tighter uppercase">Historial de Avisos</h3>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Administra o corrige tus avisos</p>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-2xl max-h-[80vh] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col mx-4">
+              <div className="p-8 border-b flex justify-between items-center bg-slate-50">
+                <div className="text-left">
+                  <h3 className="font-black text-[#1b3a4a] text-lg uppercase">Historial</h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Administra tus avisos</p>
                 </div>
-                <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-slate-200 rounded-full transition-all">
-                  <X className="w-6 h-6 text-slate-400" />
-                </button>
+                <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-slate-200 rounded-full"><X className="w-6 h-6 text-slate-400" /></button>
               </div>
-
               <div className="p-6 overflow-y-auto space-y-4">
                 {historial.length > 0 ? historial.map((item) => (
-                  <div key={item.id} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex justify-between items-center group hover:bg-white hover:shadow-md transition-all text-left">
-                    <div className="overflow-hidden">
-                      <span className="text-[10px] font-black text-[#85A3A5] tracking-widest uppercase">
-                        PUB: {item.fecha_publicacion || 'HOY'} | EXP: {item.fecha_expiracion || 'SIN FECHA'}
+                  <div key={item.id} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex justify-between items-center text-left hover:bg-white transition-all overflow-hidden">
+                    <div className="flex flex-col min-w-0 pr-4">
+                      <span className="text-[10px] font-black text-[#85A3A5] tracking-widest uppercase mb-1">
+                        PUB: {item.fecha_publicacion || 'HOY'}
                       </span>
-                      <p className="text-slate-600 text-sm truncate max-w-full font-medium uppercase">{item.titulo}</p>
+                      <p className="text-slate-600 text-sm truncate font-medium uppercase">{item.titulo}</p>
                     </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => startEditing(item)} className="p-3 text-blue-500 hover:bg-blue-50 rounded-2xl transition-all"><Edit3 className="w-5 h-5" /></button>
-                      <button onClick={() => setItemToDelete(item.id)} className="p-3 text-red-400 hover:bg-red-50 rounded-2xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                    <div className="flex gap-2 shrink-0">
+                      <button onClick={() => startEditing(item)} className="p-3 text-blue-500 hover:bg-blue-50 rounded-2xl"><Edit3 className="w-5 h-5" /></button>
+                      <button onClick={() => setItemToDelete(item.id)} className="p-3 text-red-400 hover:bg-red-50 rounded-2xl"><Trash2 className="w-5 h-5" /></button>
                     </div>
                   </div>
-                )) : <p className="text-center py-20 text-slate-400 italic font-medium">No hay avisos registrados.</p>}
+                )) : <p className="text-center py-20 text-slate-400 italic">No hay avisos registrados.</p>}
               </div>
             </motion.div>
           </div>
