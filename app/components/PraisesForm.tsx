@@ -23,15 +23,15 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Estado para el Modal de Éxito con Presencia
+  // Estados para el flujo de comunicación visual
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  
+  const [showValidationModal, setShowValidationModal] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ show: boolean; id: string | null }>({
     show: false, id: null
   });
 
   const fetchHistorial = async () => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('alabanzas')
       .select('*')
       .order('titulo', { ascending: true });
@@ -53,9 +53,13 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
   };
 
   const handlePublish = async () => {
-    if (!form.titulo || !form.letra) return;
-    setIsSubmitting(true);
+    // VALIDACIÓN ESTÉTICA: Si falta título o letra, mostramos el modal personalizado
+    if (!form.titulo || !form.letra) {
+      setShowValidationModal(true);
+      return;
+    }
 
+    setIsSubmitting(true);
     try {
       const payload = { titulo: form.titulo, letra: form.letra };
       
@@ -67,13 +71,11 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
         if (error) throw error;
       }
 
-      // Mostramos el modal de gran presencia
       setShowSuccessModal(true);
       resetLocalForm();
       fetchHistorial();
     } catch (error) {
       console.error(error);
-      alert("Hubo un error al procesar la solicitud");
     } finally {
       setIsSubmitting(false);
     }
@@ -88,7 +90,7 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
       setConfirmDelete({ show: false, id: null });
       fetchHistorial();
     } catch (error: any) {
-      alert("Error al borrar: " + error.message);
+      console.error("Error al borrar: ", error.message);
     }
   };
 
@@ -103,7 +105,31 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-4 py-6 relative w-full text-left overflow-x-hidden">
       
-      {/* MODAL DE ÉXITO (MENSAJE CON PRESENCIA) */}
+      {/* MODAL DE VALIDACIÓN (REEMPLAZA AL ALERT) */}
+      <AnimatePresence>
+        {showValidationModal && (
+          <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-[#1b3a4a]/40 backdrop-blur-sm">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 text-center border border-slate-100"
+            >
+              <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-8 h-8 text-amber-500" />
+              </div>
+              <h3 className="text-[#1b3a4a] font-black text-xl mb-2 uppercase tracking-tighter">Faltan Datos</h3>
+              <p className="text-slate-500 text-sm mb-8 leading-relaxed">Por favor, asegúrate de escribir el título y la letra de la alabanza antes de publicar.</p>
+              
+              <button 
+                onClick={() => setShowValidationModal(false)} 
+                className="w-full bg-[#1b3a4a] text-white font-black py-4 rounded-2xl shadow-lg uppercase text-xs tracking-widest transition-all active:scale-95"
+              >
+                ENTENDIDO
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL DE ÉXITO */}
       <AnimatePresence>
         {showSuccessModal && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-[#1b3a4a]/90 backdrop-blur-md">
@@ -116,40 +142,37 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
               <div className="bg-green-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto shadow-inner">
                 <CheckCircle className="w-16 h-16 text-green-600" />
               </div>
-              
               <div className="space-y-2">
-                <h3 className="text-[#1b3a4a] font-black text-2xl uppercase tracking-tighter">¡Biblioteca Actualizada!</h3>
+                <h3 className="text-[#1b3a4a] font-black text-2xl uppercase tracking-tighter">¡Publicado!</h3>
                 <p className="text-slate-500 font-medium text-sm px-4">
-                  La alabanza ha sido guardada correctamente en el sistema.
+                  La alabanza ha sido guardada correctamente en la biblioteca.
                 </p>
               </div>
-
               <button 
                 onClick={() => setShowSuccessModal(false)} 
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-black py-5 rounded-[1.5rem] shadow-lg shadow-green-200 uppercase text-xs tracking-widest transition-all active:scale-95"
+                className="w-full bg-green-600 text-white font-black py-5 rounded-[1.5rem] shadow-lg uppercase text-xs tracking-widest transition-all active:scale-95"
               >
-                Entendido, gracias
+                ACEPTAR
               </button>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      {/* CONFIRMACIÓN BORRADO (MODAL ROJO) */}
+      {/* CONFIRMACIÓN BORRADO */}
       <AnimatePresence>
         {confirmDelete.show && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden p-8 text-center border border-slate-100"
+              className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 text-center"
             >
               <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
                 <AlertTriangle className="w-8 h-8 text-red-500" />
               </div>
-              <h3 className="text-[#1b3a4a] font-black text-xl mb-2 tracking-tight uppercase">¿Eliminar Alabanza?</h3>
-              <p className="text-slate-500 text-sm mb-8 leading-relaxed">Esta canción será eliminada de la biblioteca permanentemente.</p>
-              
+              <h3 className="text-[#1b3a4a] font-black text-xl mb-2 uppercase tracking-tight">¿ELIMINAR ALABANZA?</h3>
+              <p className="text-slate-500 text-sm mb-8 leading-relaxed">Esta canción será borrada permanentemente del sistema.</p>
               <div className="flex flex-col gap-3">
-                <button onClick={executeDelete} className="w-full bg-red-500 text-white font-bold py-4 rounded-2xl shadow-lg uppercase text-xs tracking-widest">SÍ, ELIMINAR AHORA</button>
+                <button onClick={executeDelete} className="w-full bg-red-500 text-white font-bold py-4 rounded-2xl shadow-lg uppercase text-xs tracking-widest">SÍ, ELIMINAR</button>
                 <button onClick={() => setConfirmDelete({ show: false, id: null })} className="w-full bg-slate-100 text-slate-500 font-bold py-4 rounded-2xl uppercase text-xs tracking-widest">CANCELAR</button>
               </div>
             </motion.div>
@@ -157,7 +180,7 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
         )}
       </AnimatePresence>
 
-      {/* BOTONES SUPERIORES */}
+      {/* CABECERA */}
       <div className="flex justify-between items-center mb-6">
         <button onClick={onBack} className="flex items-center gap-2 text-[#1b3a4a] font-bold text-sm hover:opacity-70 transition-all">
           <ArrowLeft className="w-4 h-4" /> Volver
@@ -165,9 +188,9 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
 
         <button 
           onClick={() => setShowHistory(true)}
-          className="flex items-center gap-2 bg-[#1b3a4a] text-white px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg"
+          className="flex items-center gap-2 bg-[#1b3a4a] text-white px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all"
         >
-          <Settings className="w-4 h-4" /> Historial
+          <Settings className="w-4 h-4" /> BIBLIOTECA
         </button>
       </div>
 
@@ -178,7 +201,7 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
             <Music className="w-3 h-3" /> TÍTULO DE LA ALABANZA
           </label>
           <input 
-            type="text" className="w-full bg-white rounded-2xl px-6 py-4 outline-none text-slate-800 shadow-inner text-base font-medium"
+            type="text" className="w-full bg-white rounded-2xl px-6 py-4 outline-none text-slate-800 shadow-inner text-base font-medium placeholder:text-slate-300"
             placeholder="Nombre de la canción..."
             value={form.titulo || ''} onChange={(e) => onChange('titulo' as keyof FormState, e.target.value)}
           />
@@ -189,7 +212,7 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
             <AlignLeft className="w-3 h-3" /> LETRA DE LA ALABANZA
           </label>
           <textarea 
-            rows={10} className="w-full bg-white rounded-2xl px-6 py-4 outline-none resize-none text-slate-800 leading-relaxed shadow-inner text-base"
+            rows={10} className="w-full bg-white rounded-2xl px-6 py-4 outline-none resize-none text-slate-800 leading-relaxed shadow-inner text-base placeholder:text-slate-300"
             placeholder="Escribe o pega la letra aquí..."
             value={form.letra || ''} onChange={(e) => onChange('letra' as keyof FormState, e.target.value)}
           />
@@ -202,7 +225,7 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
           className="w-full max-w-sm bg-[#1b3a4a] text-white font-black py-6 rounded-[2rem] shadow-2xl flex items-center justify-center gap-4 active:scale-95 transition-all disabled:opacity-50 uppercase tracking-widest"
         >
           {isSubmitting ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6" />}
-          {isSubmitting ? 'ENVIANDO...' : editingId ? 'GUARDAR CAMBIOS' : 'PUBLICAR ALABANZA'}
+          {isSubmitting ? 'GUARDANDO...' : editingId ? 'GUARDAR CAMBIOS' : 'PUBLICAR ALABANZA'}
         </button>
         {editingId && (
           <button 
@@ -214,18 +237,18 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
         )}
       </div>
 
-      {/* MODAL HISTORIAL */}
+      {/* MODAL HISTORIAL / BIBLIOTECA */}
       <AnimatePresence>
         {showHistory && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1b3a4a]/60 backdrop-blur-md">
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-2xl max-h-[80vh] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col">
-              <div className="p-8 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                <div className="text-left w-full mr-4">
-                  <h3 className="font-black text-[#1b3a4a] text-lg uppercase tracking-tight">Biblioteca</h3>
+              <div className="p-8 border-b border-slate-100 bg-slate-50 flex justify-between items-center text-left">
+                <div className="w-full mr-4">
+                  <h3 className="font-black text-[#1b3a4a] text-lg uppercase tracking-tight">Biblioteca de Alabanzas</h3>
                   <div className="mt-4 relative w-full">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input 
-                      type="text" placeholder="Buscar por título..." 
+                      type="text" placeholder="Buscar canción..." 
                       className="w-full bg-white border border-slate-200 rounded-2xl pl-12 pr-4 py-3 text-sm outline-none shadow-sm"
                       value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -236,10 +259,10 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
                 </button>
               </div>
 
-              <div className="p-6 overflow-y-auto space-y-4">
+              <div className="p-6 overflow-y-auto space-y-4 text-left">
                 {filteredAlabanzas.length > 0 ? filteredAlabanzas.map((item) => (
                   <div key={item.id} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex justify-between items-center hover:bg-white transition-all shadow-sm">
-                    <div className="overflow-hidden pr-4 text-left">
+                    <div className="overflow-hidden pr-4">
                       <h4 className="text-sm font-black text-[#1b3a4a] truncate uppercase tracking-tight">{item.titulo}</h4>
                       <p className="text-slate-400 text-[10px] truncate font-medium uppercase tracking-widest">{item.letra?.substring(0, 60)}...</p>
                     </div>
@@ -249,7 +272,7 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
                     </div>
                   </div>
                 )) : (
-                  <div className="text-center py-20 text-slate-400 italic font-medium">No se encontraron resultados.</div>
+                  <div className="text-center py-20 text-slate-400 italic font-bold uppercase tracking-widest text-[10px]">No se encontraron alabanzas</div>
                 )}
               </div>
             </motion.div>
