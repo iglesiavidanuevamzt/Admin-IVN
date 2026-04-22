@@ -281,7 +281,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
         </button>
       </div>
 
-      {/* MODAL HISTORIAL */}
+      {/* MODAL  */}
       <AnimatePresence>
         {showHistory && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1b3a4a]/60 backdrop-blur-md">
