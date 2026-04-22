@@ -33,10 +33,10 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
   ];
 
   const opcionesVigencia = [
-    { label: '+1 día', dias: 1 },
-    { label: '+3 días', dias: 3 },
-    { label: '+1 semana', dias: 7 },
-    { label: '+15 días', dias: 15 },
+    { label: '+1 DÍA', dias: 1 },
+    { label: '+3 DÍAS', dias: 3 },
+    { label: '+1 SEMANA', dias: 7 },
+    { label: '+15 DÍAS', dias: 15 },
   ];
 
   const fetchHistorial = async () => {
@@ -85,7 +85,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
     onChange('ministerio' as keyof FormState, item.ministerio);
     onChange('urgencia' as keyof FormState, item.urgencia);
     onChange('fechaExpiracion' as keyof FormState, item.fecha_expiracion);
-    onChange('fechaPublicacion' as keyof FormState, item.fecha_publicacion);
+    onChange('fechaPublicacion' as keyof FormState, item.fecha_public_acion || item.fecha_publicacion);
     onChange('imagen_url' as keyof FormState, item.imagen_url);
     setShowHistory(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -113,14 +113,14 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
       const { data: { publicUrl } } = supabase.storage.from('assets').getPublicUrl(filePath);
       onChange('imagen_url' as keyof FormState, publicUrl);
     } catch (err: any) {
-      alert("Error al subir el diseño: " + err.message);
+      alert("Error: " + err.message);
     } finally {
       setUploading(false);
     }
   };
 
   const handlePublish = async () => {
-    if (!form.titulo) return alert("Por favor, ingresa un título.");
+    if (!form.titulo) return alert("Pon un título.");
     setIsSubmitting(true);
     try {
       const payload = {
@@ -131,7 +131,6 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
         fecha_publicacion: (form as any).fechaPublicacion,
         imagen_url: form.imagen_url || '',
         mensaje: form.mensaje || '',
-        vigencia: "flexible"
       };
 
       const { error } = (editingId || form.id) 
@@ -153,36 +152,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-4 py-6 w-full max-w-full overflow-x-hidden relative">
       
-      {/* NOTIFICACIÓN DE ÉXITO */}
-      <AnimatePresence>
-        {showSuccess && (
-          <motion.div initial={{ opacity: 0, y: -50, x: '-50%' }} animate={{ opacity: 1, y: 20, x: '-50%' }} exit={{ opacity: 0, y: -20, x: '-50%' }} className="fixed top-4 left-1/2 z-[100] flex items-center gap-4 bg-[#1b3a4a] border border-green-500/30 px-6 py-4 rounded-[2rem] shadow-2xl min-w-[280px]">
-            <CheckCircle2 className="w-6 h-6 text-green-400" />
-            <div className="flex flex-col text-left text-white">
-              <span className="font-bold text-sm">¡Hecho!</span>
-              <span className="text-[10px] uppercase font-black tracking-widest text-white/60">Aviso procesado</span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* MODAL DE ELIMINAR */}
-      <AnimatePresence>
-        {itemToDelete && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#1b3a4a]/80 backdrop-blur-sm">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl text-center space-y-6">
-              <AlertCircle className="w-16 h-16 text-red-500 mx-auto" />
-              <h3 className="text-[#1b3a4a] font-black text-xl uppercase tracking-tighter">¿Eliminar Registro?</h3>
-              <div className="flex flex-col gap-3">
-                <button onClick={confirmDelete} className="w-full bg-red-500 text-white font-black py-4 rounded-2xl shadow-lg uppercase text-xs">Sí, eliminar</button>
-                <button onClick={() => setItemToDelete(null)} className="w-full bg-slate-100 text-slate-600 font-black py-4 rounded-2xl uppercase text-xs">Cancelar</button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* BOTONES SUPERIORES */}
+      {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <button onClick={onBack} className="flex items-center gap-2 text-[#1b3a4a] font-bold text-sm">
           <ArrowLeft className="w-4 h-4" /> Volver
@@ -197,7 +167,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
         {/* DISEÑO GRÁFICO */}
         <div className="space-y-3 w-full">
           <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2 ml-1">
-            <ImageIcon className="w-3 h-3" /> DISEÑO GRÁFICO (JPG / PNG)
+            <ImageIcon className="w-3 h-3" /> DISEÑO GRÁFICO
           </label>
           <div className="relative border-2 border-dashed border-white/40 rounded-3xl h-40 flex flex-col items-center justify-center bg-white/5 overflow-hidden">
             <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={handleFileUpload} disabled={uploading} />
@@ -211,7 +181,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
           <input type="text" className="w-full bg-white rounded-2xl px-5 py-4 outline-none text-slate-800 text-base" value={form.titulo || ''} onChange={(e) => onChange('titulo', e.target.value)} />
         </div>
 
-        {/* DESCRIPCIÓN - CAMBIADO DE LUGAR AQUÍ */}
+        {/* DESCRIPCIÓN */}
         <div className="space-y-2 w-full">
           <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2 ml-1">
             <AlignLeft className="w-3 h-3" /> Descripción
@@ -246,26 +216,26 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
           </div>
         </div>
 
-        {/* FECHAS */}
-        <div className="space-y-4 pt-2 border-t border-white/10">
+        {/* FECHAS Y VIGENCIA */}
+        <div className="space-y-6 pt-4 border-t border-white/20">
           <div className="grid grid-cols-2 gap-4 w-full">
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2 ml-1">Publicación</label>
-              <input type="date" className="w-full bg-white rounded-2xl px-4 py-4 text-slate-700 text-base" value={(form as any).fechaPublicacion || ''} onChange={(e) => onChange('fechaPublicacion' as keyof FormState, e.target.value)} />
+              <label className="text-[11px] font-black uppercase text-white tracking-widest ml-1">Publicación</label>
+              <input type="date" className="w-full bg-white rounded-2xl px-4 py-4 text-slate-700 text-base font-bold" value={(form as any).fechaPublicacion || ''} onChange={(e) => onChange('fechaPublicacion' as keyof FormState, e.target.value)} />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2 ml-1">Caducidad</label>
-              <input type="date" className="w-full bg-white rounded-2xl px-4 py-4 text-slate-700 text-base" value={(form as any).fechaExpiracion || ''} onChange={(e) => onChange('fechaExpiracion' as keyof FormState, e.target.value)} />
+              <label className="text-[11px] font-black uppercase text-white tracking-widest ml-1">Caducidad</label>
+              <input type="date" className="w-full bg-white rounded-2xl px-4 py-4 text-slate-700 text-base font-bold" value={(form as any).fechaExpiracion || ''} onChange={(e) => onChange('fechaExpiracion' as keyof FormState, e.target.value)} />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2 ml-1">
-              <Clock className="w-3 h-3" /> Sugerencias de duración
+          <div className="space-y-4 bg-[#1b3a4a]/30 p-5 rounded-[2.5rem] border border-white/10 shadow-inner">
+            <label className="text-[12px] font-black uppercase text-white tracking-widest flex items-center gap-2 ml-1">
+              <Clock className="w-4 h-4" /> VIGENCIA RÁPIDA
             </label>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-2 gap-3">
               {opcionesVigencia.map((opt) => (
-                <button key={opt.dias} type="button" onClick={() => aplicarVigenciaRapida(opt.dias)} className="bg-white/20 hover:bg-white/40 text-white text-[9px] font-black uppercase px-4 py-2 rounded-full transition-all border border-white/10">
+                <button key={opt.dias} type="button" onClick={() => aplicarVigenciaRapida(opt.dias)} className="bg-[#1b3a4a] hover:bg-[#2a556b] text-white text-sm font-black py-4 px-2 rounded-2xl transition-all shadow-xl border border-white/20 active:scale-95 flex items-center justify-center">
                   {opt.label}
                 </button>
               ))}
@@ -274,10 +244,11 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
         </div>
       </div>
 
-      <div className="mt-12 pb-10 flex flex-col items-center gap-4">
-        <button onClick={handlePublish} disabled={isSubmitting || uploading} className="w-full max-sm:max-w-full max-w-sm bg-[#1b3a4a] text-white font-bold py-5 rounded-[1.5rem] shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-50">
-          {isSubmitting ? <Loader2 className="animate-spin w-5 h-5" /> : <Send className="w-5 h-5" />}
-          {isSubmitting ? 'Procesando...' : (editingId || form.id) ? 'Guardar Cambios' : 'Publicar Aviso'}
+      {/* BOTÓN PUBLICAR */}
+      <div className="mt-12 pb-10 flex flex-col items-center">
+        <button onClick={handlePublish} disabled={isSubmitting || uploading} className="w-full max-w-sm bg-[#1b3a4a] text-white text-lg font-black py-6 rounded-[2rem] shadow-2xl flex items-center justify-center gap-4 active:scale-95 transition-all disabled:opacity-50 uppercase tracking-widest">
+          {isSubmitting ? <Loader2 className="animate-spin w-6 h-6" /> : <Send className="w-6 h-6" />}
+          {isSubmitting ? 'ENVIANDO...' : (editingId || form.id) ? 'GUARDAR' : 'PUBLICAR AHORA'}
         </button>
       </div>
 
@@ -285,7 +256,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
       <AnimatePresence>
         {showHistory && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1b3a4a]/60 backdrop-blur-md">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-2xl max-h-[80vh] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col mx-4">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-2xl max-h-[80vh] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col">
               <div className="p-8 border-b flex justify-between items-center bg-slate-50">
                 <h3 className="font-black text-[#1b3a4a] text-lg uppercase">Historial</h3>
                 <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-slate-200 rounded-full"><X className="w-6 h-6 text-slate-400" /></button>
@@ -293,7 +264,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
               <div className="p-6 overflow-y-auto space-y-4">
                 {historial.map((item) => (
                   <div key={item.id} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex justify-between items-center">
-                    <div className="flex flex-col min-w-0 pr-4">
+                    <div className="flex flex-col min-w-0 pr-4 text-left">
                       <span className="text-[10px] font-black text-[#85A3A5] uppercase mb-1">{item.fecha_publicacion}</span>
                       <p className="text-slate-600 text-sm truncate font-medium uppercase">{item.titulo}</p>
                     </div>
@@ -306,6 +277,32 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL ELIMINAR */}
+      <AnimatePresence>
+        {itemToDelete && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#1b3a4a]/80 backdrop-blur-sm">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl text-center space-y-6">
+              <AlertCircle className="w-16 h-16 text-red-500 mx-auto" />
+              <h3 className="text-[#1b3a4a] font-black text-xl uppercase tracking-tighter">¿Eliminar?</h3>
+              <div className="flex flex-col gap-3">
+                <button onClick={confirmDelete} className="w-full bg-red-500 text-white font-black py-4 rounded-2xl uppercase text-xs">Sí, eliminar</button>
+                <button onClick={() => setItemToDelete(null)} className="w-full bg-slate-100 text-slate-600 font-black py-4 rounded-2xl uppercase text-xs">Cancelar</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL ÉXITO */}
+      <AnimatePresence>
+        {showSuccess && (
+          <motion.div initial={{ opacity: 0, y: -50, x: '-50%' }} animate={{ opacity: 1, y: 20, x: '-50%' }} exit={{ opacity: 0, y: -20, x: '-50%' }} className="fixed top-4 left-1/2 z-[100] flex items-center gap-4 bg-[#1b3a4a] border border-green-500/30 px-6 py-4 rounded-[2rem] shadow-2xl">
+            <CheckCircle2 className="w-6 h-6 text-green-400" />
+            <span className="text-white font-bold text-sm uppercase">¡Publicado!</span>
+          </motion.div>
         )}
       </AnimatePresence>
     </motion.div>
