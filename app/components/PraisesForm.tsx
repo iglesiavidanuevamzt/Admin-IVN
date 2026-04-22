@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Music, AlignLeft, ArrowLeft, Send, 
   Loader2, Settings, X, Trash2, Edit3, 
-  Search, CheckCircle, AlertTriangle 
+  Search, CheckCircle, AlertTriangle, Copy 
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { FormState } from '../../types';
@@ -26,6 +26,7 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
   // Estados para el flujo de comunicación visual
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showValidationModal, setShowValidationModal] = useState(false);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false); // <--- NUEVO
   const [confirmDelete, setConfirmDelete] = useState<{ show: boolean; id: string | null }>({
     show: false, id: null
   });
@@ -53,9 +54,30 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
   };
 
   const handlePublish = async () => {
-    // VALIDACIÓN ESTÉTICA: Si falta título o letra, mostramos el modal personalizado
+    // 1. VALIDACIÓN: Campos vacíos
     if (!form.titulo || !form.letra) {
       setShowValidationModal(true);
+      return;
+    }
+
+    // 2. DETECCIÓN DE REPETIDOS (Título o Letra)
+    const normalizar = (texto: string) => texto.replace(/\s+/g, ' ').trim().toLowerCase();
+    
+    const tituloActual = normalizar(form.titulo);
+    const letraActual = normalizar(form.letra);
+
+    const esRepetido = historial.some(item => {
+      // Ignorar el mismo registro si estamos editando
+      if (item.id === editingId) return false;
+      
+      const tituloIgual = normalizar(item.titulo) === tituloActual;
+      const letraIgual = normalizar(item.letra) === letraActual;
+      
+      return tituloIgual || letraIgual;
+    });
+
+    if (esRepetido) {
+      setShowDuplicateModal(true);
       return;
     }
 
@@ -105,7 +127,27 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-4 py-6 relative w-full text-left overflow-x-hidden">
       
-      {/* MODAL DE VALIDACIÓN (REEMPLAZA AL ALERT) */}
+      {/* MODAL: ALABANZA REPETIDA */}
+      <AnimatePresence>
+        {showDuplicateModal && (
+          <div className="fixed inset-0 z-[270] flex items-center justify-center p-4 bg-[#1b3a4a]/40 backdrop-blur-sm">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 text-center border border-slate-100"
+            >
+              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Copy className="w-8 h-8 text-[#85A3A5]" />
+              </div>
+              <h3 className="text-[#1b3a4a] font-black text-xl mb-2 uppercase tracking-tighter">Contenido Duplicado</h3>
+              <p className="text-slate-500 text-sm mb-8 leading-relaxed px-2">Esta alabanza (título o letra) ya existe en la biblioteca. Verifica en el buscador antes de agregarla nuevamente.</p>
+              <button onClick={() => setShowDuplicateModal(false)} className="w-full bg-[#1b3a4a] text-white font-black py-4 rounded-2xl shadow-lg uppercase text-xs tracking-widest transition-all active:scale-95">
+                REVISAR BIBLIOTECA
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL DE VALIDACIÓN (CAMPOS VACÍOS) */}
       <AnimatePresence>
         {showValidationModal && (
           <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-[#1b3a4a]/40 backdrop-blur-sm">
@@ -117,11 +159,7 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
               </div>
               <h3 className="text-[#1b3a4a] font-black text-xl mb-2 uppercase tracking-tighter">Faltan Datos</h3>
               <p className="text-slate-500 text-sm mb-8 leading-relaxed">Por favor, asegúrate de escribir el título y la letra de la alabanza antes de publicar.</p>
-              
-              <button 
-                onClick={() => setShowValidationModal(false)} 
-                className="w-full bg-[#1b3a4a] text-white font-black py-4 rounded-2xl shadow-lg uppercase text-xs tracking-widest transition-all active:scale-95"
-              >
+              <button onClick={() => setShowValidationModal(false)} className="w-full bg-[#1b3a4a] text-white font-black py-4 rounded-2xl shadow-lg uppercase text-xs tracking-widest transition-all active:scale-95">
                 ENTENDIDO
               </button>
             </motion.div>
@@ -133,10 +171,7 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
       <AnimatePresence>
         {showSuccessModal && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-[#1b3a4a]/90 backdrop-blur-md">
-            <motion.div 
-              initial={{ scale: 0.8, opacity: 0 }} 
-              animate={{ scale: 1, opacity: 1 }} 
-              exit={{ scale: 0.8, opacity: 0 }}
+            <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }}
               className="bg-white rounded-[3rem] p-10 max-w-sm w-full shadow-2xl text-center space-y-8 border-4 border-green-500/20"
             >
               <div className="bg-green-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto shadow-inner">
@@ -144,16 +179,9 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
               </div>
               <div className="space-y-2">
                 <h3 className="text-[#1b3a4a] font-black text-2xl uppercase tracking-tighter">¡Publicado!</h3>
-                <p className="text-slate-500 font-medium text-sm px-4">
-                  La alabanza ha sido guardada correctamente en la biblioteca.
-                </p>
+                <p className="text-slate-500 font-medium text-sm px-4">La alabanza ha sido guardada correctamente en la biblioteca.</p>
               </div>
-              <button 
-                onClick={() => setShowSuccessModal(false)} 
-                className="w-full bg-green-600 text-white font-black py-5 rounded-[1.5rem] shadow-lg uppercase text-xs tracking-widest transition-all active:scale-95"
-              >
-                ACEPTAR
-              </button>
+              <button onClick={() => setShowSuccessModal(false)} className="w-full bg-green-600 text-white font-black py-5 rounded-[1.5rem] shadow-lg uppercase text-xs tracking-widest transition-all active:scale-95">ACEPTAR</button>
             </motion.div>
           </div>
         )}
@@ -185,11 +213,7 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
         <button onClick={onBack} className="flex items-center gap-2 text-[#1b3a4a] font-bold text-sm hover:opacity-70 transition-all">
           <ArrowLeft className="w-4 h-4" /> Volver
         </button>
-
-        <button 
-          onClick={() => setShowHistory(true)}
-          className="flex items-center gap-2 bg-[#1b3a4a] text-white px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all"
-        >
+        <button onClick={() => setShowHistory(true)} className="flex items-center gap-2 bg-[#1b3a4a] text-white px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
           <Settings className="w-4 h-4" /> BIBLIOTECA
         </button>
       </div>
@@ -228,12 +252,7 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
           {isSubmitting ? 'GUARDANDO...' : editingId ? 'GUARDAR CAMBIOS' : 'PUBLICAR ALABANZA'}
         </button>
         {editingId && (
-          <button 
-            onClick={resetLocalForm} 
-            className="text-[#1b3a4a] text-xs font-black uppercase tracking-widest opacity-70 hover:opacity-100 underline"
-          >
-            ✕ Cancelar Edición
-          </button>
+          <button onClick={resetLocalForm} className="text-[#1b3a4a] text-xs font-black uppercase tracking-widest opacity-70 hover:opacity-100 underline">✕ Cancelar Edición</button>
         )}
       </div>
 
