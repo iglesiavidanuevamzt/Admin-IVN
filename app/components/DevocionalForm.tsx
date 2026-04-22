@@ -104,7 +104,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-4 py-6 w-full relative">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-4 py-6 w-full relative max-w-full overflow-hidden">
       
       {/* NOTIFICACIONES */}
       <AnimatePresence>
@@ -160,20 +160,31 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
         </button>
       </div>
 
-      {/* FORMULARIO */}
-      <div className="w-full bg-[#85A3A5] rounded-[2.5rem] shadow-2xl p-6 sm:p-10 space-y-8 text-left border border-white/10">
-        <div className="space-y-3">
+      {/* FORMULARIO - AJUSTE DE BOX-SIZING Y OVERFLOW */}
+      <div className="w-full bg-[#85A3A5] rounded-[2.5rem] shadow-2xl p-6 sm:p-10 space-y-8 text-left border border-white/10 box-border overflow-hidden">
+        <div className="space-y-3 w-full">
           <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/90">
             <Calendar className="w-3 h-3" /> FECHA DEL DEVOCIONAL
           </label>
-          <input type="date" className="w-full bg-white border-none rounded-2xl px-6 py-4 outline-none text-slate-600 shadow-inner" value={form.fechaDevocional || ''} onChange={(e) => onChange('fechaDevocional', e.target.value)} />
+          {/* AQUÍ ESTÁ EL FIX CLAVE: box-border y max-w-full */}
+          <input 
+            type="date" 
+            className="w-full max-w-full bg-white border-none rounded-2xl px-6 py-4 outline-none text-slate-600 shadow-inner box-border" 
+            value={form.fechaDevocional || ''} 
+            onChange={(e) => onChange('fechaDevocional', e.target.value)} 
+          />
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-3 w-full">
           <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/90">
             <BookOpen className="w-3 h-3" /> REFLEXIÓN DIARIA
           </label>
-          <textarea rows={12} className="w-full bg-white border-none rounded-2xl px-6 py-4 outline-none text-slate-800 leading-relaxed resize-none shadow-inner" value={form.reflexion || ''} onChange={(e) => onChange('reflexion', e.target.value)} />
+          <textarea 
+            rows={12} 
+            className="w-full max-w-full bg-white border-none rounded-2xl px-6 py-4 outline-none text-slate-800 leading-relaxed resize-none shadow-inner box-border" 
+            value={form.reflexion || ''} 
+            onChange={(e) => onChange('reflexion', e.target.value)} 
+          />
         </div>
       </div>
 
@@ -192,7 +203,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
         )}
       </div>
 
-      {/* MODAL DE HISTORIAL - INTEGRADO Y CORREGIDO */}
+      {/* MODAL DE HISTORIAL */}
       <AnimatePresence>
         {showHistory && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1b3a4a]/60 backdrop-blur-md">
@@ -208,7 +219,6 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
                 {historial.length > 0 ? historial.map((item) => (
                   <div key={item.id} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex justify-between items-center text-left hover:bg-white transition-all shadow-sm overflow-hidden">
                     
-                    {/* CONTENEDOR DE TEXTO CON AJUSTES PARA DESBORDAMIENTO */}
                     <div className="flex flex-col min-w-0 pr-4">
                       <span className="text-[10px] font-black text-[#85A3A5] tracking-widest uppercase mb-1">
                         {item.fecha}
@@ -218,7 +228,6 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
                       </p>
                     </div>
 
-                    {/* BOTONES QUE NO SE DEFORMAN (shrink-0) */}
                     <div className="flex gap-2 shrink-0">
                       <button onClick={() => startEditing(item)} className="p-3 text-blue-500 hover:bg-blue-50 rounded-2xl transition-all">
                         <Edit3 className="w-5 h-5" />
