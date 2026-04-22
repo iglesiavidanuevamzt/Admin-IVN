@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Info, AlertTriangle, AlertCircle, Calendar, ArrowLeft, 
   Send, Users, ImageIcon, Upload, Loader2,
-  AlignLeft, CheckCircle2, History, X, Trash2, Edit3, Clock 
+  AlignLeft, CheckCircle2, History, X, Trash2, Edit3, Clock, CheckCircle 
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { FormState } from '../../types';
@@ -20,7 +20,7 @@ interface CaptureFormProps {
 export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFormProps) => {
   const [uploading, setUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   
   const [showHistory, setShowHistory] = useState(false);
   const [historial, setHistorial] = useState<any[]>([]);
@@ -138,8 +138,10 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
         : await supabase.from('anuncios').insert([payload]);
 
       if (error) throw error;
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
+      
+      // MOSTRAR MODAL DE ÉXITO CON PRESENCIA
+      setShowSuccessModal(true);
+      
       resetFormFields();
       fetchHistorial();
     } catch (err: any) {
@@ -178,7 +180,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
         {/* ACTIVIDAD */}
         <div className="space-y-2 w-full">
           <label className="text-[10px] font-black uppercase text-white tracking-widest ml-1">ACTIVIDAD / EVENTO</label>
-          <input type="text" className="w-full bg-white rounded-2xl px-5 py-4 outline-none text-slate-800 text-base" value={form.titulo || ''} onChange={(e) => onChange('titulo', e.target.value)} />
+          <input type="text" className="w-full bg-white rounded-2xl px-5 py-4 outline-none text-slate-800 text-base font-medium" value={form.titulo || ''} onChange={(e) => onChange('titulo', e.target.value)} />
         </div>
 
         {/* DESCRIPCIÓN */}
@@ -194,7 +196,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
           <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2 ml-1">
             <Users className="w-3 h-3" /> Ministerio Encargado
           </label>
-          <select className="w-full bg-white rounded-2xl px-5 py-4 outline-none text-slate-700 text-base appearance-none" value={form.ministerio || ''} onChange={(e) => onChange('ministerio', e.target.value)}>
+          <select className="w-full bg-white rounded-2xl px-5 py-4 outline-none text-slate-700 text-base appearance-none font-medium" value={form.ministerio || ''} onChange={(e) => onChange('ministerio', e.target.value)}>
             {ministerios.map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
@@ -221,11 +223,11 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
           <div className="grid grid-cols-2 gap-4 w-full">
             <div className="space-y-2">
               <label className="text-[11px] font-black uppercase text-white tracking-widest ml-1">Publicación</label>
-              <input type="date" className="w-full bg-white rounded-2xl px-4 py-4 text-slate-700 text-base font-bold" value={(form as any).fechaPublicacion || ''} onChange={(e) => onChange('fechaPublicacion' as keyof FormState, e.target.value)} />
+              <input type="date" className="w-full bg-white rounded-2xl px-4 py-4 text-slate-700 text-base font-bold shadow-sm" value={(form as any).fechaPublicacion || ''} onChange={(e) => onChange('fechaPublicacion' as keyof FormState, e.target.value)} />
             </div>
             <div className="space-y-2">
               <label className="text-[11px] font-black uppercase text-white tracking-widest ml-1">Caducidad</label>
-              <input type="date" className="w-full bg-white rounded-2xl px-4 py-4 text-slate-700 text-base font-bold" value={(form as any).fechaExpiracion || ''} onChange={(e) => onChange('fechaExpiracion' as keyof FormState, e.target.value)} />
+              <input type="date" className="w-full bg-white rounded-2xl px-4 py-4 text-slate-700 text-base font-bold shadow-sm" value={(form as any).fechaExpiracion || ''} onChange={(e) => onChange('fechaExpiracion' as keyof FormState, e.target.value)} />
             </div>
           </div>
 
@@ -244,13 +246,45 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
         </div>
       </div>
 
-      {/* BOTÓN PUBLICAR */}
+      {/* BOTÓN PRINCIPAL DE ENVÍO */}
       <div className="mt-12 pb-10 flex flex-col items-center">
         <button onClick={handlePublish} disabled={isSubmitting || uploading} className="w-full max-w-sm bg-[#1b3a4a] text-white text-lg font-black py-6 rounded-[2rem] shadow-2xl flex items-center justify-center gap-4 active:scale-95 transition-all disabled:opacity-50 uppercase tracking-widest">
           {isSubmitting ? <Loader2 className="animate-spin w-6 h-6" /> : <Send className="w-6 h-6" />}
-          {isSubmitting ? 'ENVIANDO...' : (editingId || form.id) ? 'GUARDAR' : 'PUBLICAR AHORA'}
+          {isSubmitting ? 'ENVIANDO...' : (editingId || form.id) ? 'GUARDAR CAMBIOS' : 'PUBLICAR AHORA'}
         </button>
       </div>
+
+      {/* MODAL DE ÉXITO (MENSAJE CON PRESENCIA) */}
+      <AnimatePresence>
+        {showSuccessModal && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-[#1b3a4a]/90 backdrop-blur-md">
+            <motion.div 
+              initial={{ scale: 0.8, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }} 
+              exit={{ scale: 0.8, opacity: 0 }}
+              className="bg-white rounded-[3rem] p-10 max-w-sm w-full shadow-2xl text-center space-y-8 border-4 border-green-500/20"
+            >
+              <div className="bg-green-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                <CheckCircle className="w-16 h-16 text-green-600" />
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="text-[#1b3a4a] font-black text-2xl uppercase tracking-tighter">¡Operación Exitosa!</h3>
+                <p className="text-slate-500 font-medium text-sm px-4">
+                  El aviso ha sido procesado y guardado correctamente en el sistema.
+                </p>
+              </div>
+
+              <button 
+                onClick={() => setShowSuccessModal(false)} 
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-black py-5 rounded-[1.5rem] shadow-lg shadow-green-200 uppercase text-xs tracking-widest transition-all active:scale-95"
+              >
+                Entendido, gracias
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* MODAL HISTORIAL */}
       <AnimatePresence>
@@ -258,7 +292,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1b3a4a]/60 backdrop-blur-md">
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-2xl max-h-[80vh] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col">
               <div className="p-8 border-b flex justify-between items-center bg-slate-50">
-                <h3 className="font-black text-[#1b3a4a] text-lg uppercase">Historial</h3>
+                <h3 className="font-black text-[#1b3a4a] text-lg uppercase">Historial de Avisos</h3>
                 <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-slate-200 rounded-full"><X className="w-6 h-6 text-slate-400" /></button>
               </div>
               <div className="p-6 overflow-y-auto space-y-4">
@@ -269,8 +303,8 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
                       <p className="text-slate-600 text-sm truncate font-medium uppercase">{item.titulo}</p>
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => startEditing(item)} className="p-3 text-blue-500 hover:bg-blue-50 rounded-2xl"><Edit3 className="w-5 h-5" /></button>
-                      <button onClick={() => setItemToDelete(item.id)} className="p-3 text-red-400 hover:bg-red-50 rounded-2xl"><Trash2 className="w-5 h-5" /></button>
+                      <button onClick={() => startEditing(item)} className="p-3 text-blue-500 hover:bg-blue-50 rounded-2xl transition-colors"><Edit3 className="w-5 h-5" /></button>
+                      <button onClick={() => setItemToDelete(item.id)} className="p-3 text-red-400 hover:bg-red-50 rounded-2xl transition-colors"><Trash2 className="w-5 h-5" /></button>
                     </div>
                   </div>
                 ))}
@@ -286,25 +320,17 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#1b3a4a]/80 backdrop-blur-sm">
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl text-center space-y-6">
               <AlertCircle className="w-16 h-16 text-red-500 mx-auto" />
-              <h3 className="text-[#1b3a4a] font-black text-xl uppercase tracking-tighter">¿Eliminar?</h3>
+              <h3 className="text-[#1b3a4a] font-black text-xl uppercase tracking-tighter">¿Eliminar Aviso?</h3>
+              <p className="text-slate-500 text-xs font-medium">Esta acción no se puede deshacer.</p>
               <div className="flex flex-col gap-3">
-                <button onClick={confirmDelete} className="w-full bg-red-500 text-white font-black py-4 rounded-2xl uppercase text-xs">Sí, eliminar</button>
-                <button onClick={() => setItemToDelete(null)} className="w-full bg-slate-100 text-slate-600 font-black py-4 rounded-2xl uppercase text-xs">Cancelar</button>
+                <button onClick={confirmDelete} className="w-full bg-red-500 text-white font-black py-4 rounded-2xl uppercase text-xs tracking-widest shadow-lg shadow-red-100">Sí, eliminar</button>
+                <button onClick={() => setItemToDelete(null)} className="w-full bg-slate-100 text-slate-600 font-black py-4 rounded-2xl uppercase text-xs tracking-widest">Cancelar</button>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      {/* MODAL ÉXITO */}
-      <AnimatePresence>
-        {showSuccess && (
-          <motion.div initial={{ opacity: 0, y: -50, x: '-50%' }} animate={{ opacity: 1, y: 20, x: '-50%' }} exit={{ opacity: 0, y: -20, x: '-50%' }} className="fixed top-4 left-1/2 z-[100] flex items-center gap-4 bg-[#1b3a4a] border border-green-500/30 px-6 py-4 rounded-[2rem] shadow-2xl">
-            <CheckCircle2 className="w-6 h-6 text-green-400" />
-            <span className="text-white font-bold text-sm uppercase">¡Publicado!</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 };
