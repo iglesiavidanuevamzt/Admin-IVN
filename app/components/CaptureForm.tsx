@@ -49,7 +49,6 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
 
   useEffect(() => { fetchHistorial(); }, []);
 
-  // Función para aplicar vigencia rápida sin perder la libertad manual
   const aplicarVigenciaRapida = (dias: number) => {
     const base = (form as any).fechaPublicacion ? new Date((form as any).fechaPublicacion + 'T12:00:00') : new Date();
     const fin = new Date(base);
@@ -57,7 +56,6 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
     onChange('fechaExpiracion' as keyof FormState, fin.toISOString().split('T')[0]);
   };
 
-  // VALIDACIÓN: Evita que la caducidad sea anterior a la publicación
   useEffect(() => {
     const pub = (form as any).fechaPublicacion;
     const exp = (form as any).fechaExpiracion;
@@ -213,6 +211,14 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
           <input type="text" className="w-full bg-white rounded-2xl px-5 py-4 outline-none text-slate-800 text-base" value={form.titulo || ''} onChange={(e) => onChange('titulo', e.target.value)} />
         </div>
 
+        {/* DESCRIPCIÓN - CAMBIADO DE LUGAR AQUÍ */}
+        <div className="space-y-2 w-full">
+          <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2 ml-1">
+            <AlignLeft className="w-3 h-3" /> Descripción
+          </label>
+          <textarea className="w-full bg-white rounded-2xl px-5 py-4 outline-none text-slate-800 min-h-[100px] text-base resize-none" value={form.mensaje || ''} onChange={(e) => onChange('mensaje', e.target.value)} />
+        </div>
+
         {/* MINISTERIO */}
         <div className="space-y-2 w-full">
           <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2 ml-1">
@@ -223,7 +229,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
           </select>
         </div>
 
-        {/* URGENCIA (HORIZONTAL) */}
+        {/* URGENCIA */}
         <div className="space-y-3 w-full">
           <label className="text-[10px] font-black uppercase text-white tracking-widest ml-1">Nivel de Urgencia</label>
           <div className="grid grid-cols-3 gap-2 w-full">
@@ -240,7 +246,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
           </div>
         </div>
 
-        {/* FECHAS Y VIGENCIA FLEXIBLE */}
+        {/* FECHAS */}
         <div className="space-y-4 pt-2 border-t border-white/10">
           <div className="grid grid-cols-2 gap-4 w-full">
             <div className="space-y-2">
@@ -266,18 +272,10 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
             </div>
           </div>
         </div>
-
-        {/* DESCRIPCIÓN */}
-        <div className="space-y-2 w-full">
-          <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2 ml-1">
-            <AlignLeft className="w-3 h-3" /> Descripción
-          </label>
-          <textarea className="w-full bg-white rounded-2xl px-5 py-4 outline-none text-slate-800 min-h-[100px] text-base resize-none" value={form.mensaje || ''} onChange={(e) => onChange('mensaje', e.target.value)} />
-        </div>
       </div>
 
       <div className="mt-12 pb-10 flex flex-col items-center gap-4">
-        <button onClick={handlePublish} disabled={isSubmitting || uploading} className="w-full max-w-sm bg-[#1b3a4a] text-white font-bold py-5 rounded-[1.5rem] shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-50">
+        <button onClick={handlePublish} disabled={isSubmitting || uploading} className="w-full max-sm:max-w-full max-w-sm bg-[#1b3a4a] text-white font-bold py-5 rounded-[1.5rem] shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-50">
           {isSubmitting ? <Loader2 className="animate-spin w-5 h-5" /> : <Send className="w-5 h-5" />}
           {isSubmitting ? 'Procesando...' : (editingId || form.id) ? 'Guardar Cambios' : 'Publicar Aviso'}
         </button>
