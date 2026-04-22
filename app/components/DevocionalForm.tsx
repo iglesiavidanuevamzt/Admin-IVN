@@ -21,7 +21,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
   const [showHistory, setShowHistory] = useState(false);
   const [historial, setHistorial] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [filterDate, setFilterDate] = useState(''); // <--- NUEVO ESTADO PARA BUSCADOR
+  const [filterDate, setFilterDate] = useState(''); 
   
   // Modales de Comunicación
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -123,7 +123,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-4 py-6 w-full max-w-full overflow-x-hidden relative">
       
-      {/* MODAL DE CONTENIDO REPETIDO */}
+      {/* MODALES DE COMUNICACIÓN (DUPLICADO, VALIDACIÓN, ÉXITO, ELIMINAR) */}
       <AnimatePresence>
         {showDuplicateModal && (
           <div className="fixed inset-0 z-[270] flex items-center justify-center p-4 bg-[#1b3a4a]/40 backdrop-blur-md">
@@ -141,7 +141,6 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
         )}
       </AnimatePresence>
 
-      {/* MODAL DE VALIDACIÓN */}
       <AnimatePresence>
         {showValidationModal && (
           <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-[#1b3a4a]/40 backdrop-blur-sm">
@@ -159,7 +158,6 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
         )}
       </AnimatePresence>
 
-      {/* MODAL DE ÉXITO */}
       <AnimatePresence>
         {showSuccessModal && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-[#1b3a4a]/90 backdrop-blur-md">
@@ -179,7 +177,6 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
         )}
       </AnimatePresence>
 
-      {/* MODAL DE CONFIRMACIÓN DE ELIMINACIÓN */}
       <AnimatePresence>
         {confirmDelete.show && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
@@ -199,7 +196,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
         )}
       </AnimatePresence>
 
-      {/* HEADER */}
+      {/* HEADER PRINCIPAL */}
       <div className="flex justify-between items-center mb-6">
         <button onClick={onBack} className="flex items-center gap-2 text-[#1b3a4a] font-bold text-sm">
           <ArrowLeft className="w-4 h-4" /> Volver
@@ -209,7 +206,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
         </button>
       </div>
 
-      {/* FORMULARIO */}
+      {/* FORMULARIO DE ENTRADA */}
       <div className="w-full bg-[#85A3A5] rounded-[2.5rem] shadow-2xl p-5 sm:p-8 space-y-6 text-left border border-white/10 flex flex-col box-border">
         <div className="flex flex-col w-full space-y-2">
           <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/90 ml-1">
@@ -237,7 +234,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
         </div>
       </div>
 
-      {/* BOTÓN DE ENVÍO */}
+      {/* BOTONES DE ACCIÓN */}
       <div className="mt-12 flex flex-col items-center gap-4">
         <button 
           onClick={handlePublish} disabled={isSubmitting}
@@ -253,33 +250,41 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
         )}
       </div>
 
-      {/* MODAL DE HISTORIAL CON BUSCADOR */}
+      {/* MODAL DE HISTORIAL CON BUSCADOR CORREGIDO */}
       <AnimatePresence>
         {showHistory && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1b3a4a]/60 backdrop-blur-md">
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-2xl max-h-[80vh] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col mx-4">
+              
               <div className="p-8 border-b bg-slate-50 text-left">
                 <div className="flex justify-between items-center mb-6">
                   <div>
                     <h3 className="font-black text-[#1b3a4a] text-lg uppercase tracking-tight">Archivo de Devocionales</h3>
                     <p className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Consulta y edita días anteriores</p>
                   </div>
-                  <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-slate-200 rounded-full transition-all"><X className="w-6 h-6 text-slate-400" /></button>
+                  <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-slate-200 rounded-full transition-all">
+                    <X className="w-6 h-6 text-slate-400" />
+                  </button>
                 </div>
 
-                {/* BUSCADOR POR FECHA */}
+                {/* BUSCADOR POR FECHA - AJUSTE DE DESBORDAMIENTO */}
                 <div className="relative w-full">
-                  <label className="text-[10px] font-black text-[#1b3a4a] uppercase tracking-widest ml-1 mb-2 block">Buscar por fecha</label>
-                  <div className="relative">
-                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#85A3A5]" />
+                  <label className="text-[10px] font-black text-[#1b3a4a] uppercase tracking-widest ml-1 mb-2 block">
+                    Buscar por fecha
+                  </label>
+                  <div className="relative flex items-center w-full">
+                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#85A3A5] z-10" />
                     <input 
                       type="date" 
-                      className="w-full bg-white border border-slate-200 rounded-2xl pl-12 pr-10 py-3 text-sm outline-none shadow-sm text-slate-600 font-bold"
+                      className="w-full bg-white border border-slate-200 rounded-2xl pl-12 pr-12 py-3 text-sm sm:text-base outline-none shadow-sm text-slate-600 font-bold appearance-none min-w-0"
                       value={filterDate}
                       onChange={(e) => setFilterDate(e.target.value)}
                     />
                     {filterDate && (
-                      <button onClick={() => setFilterDate('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 bg-slate-100 rounded-full hover:bg-slate-200 transition-all">
+                      <button 
+                        onClick={() => setFilterDate('')} 
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-all z-10"
+                      >
                         <X className="w-3 h-3 text-slate-400" />
                       </button>
                     )}
@@ -287,6 +292,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
                 </div>
               </div>
 
+              {/* LISTA DE RESULTADOS */}
               <div className="p-6 overflow-y-auto space-y-4 text-left">
                 {filteredHistorial.length > 0 ? filteredHistorial.map((item) => (
                   <div key={item.id} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex justify-between items-center hover:bg-white transition-all shadow-sm">
@@ -295,8 +301,12 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
                       <p className="text-slate-600 text-sm truncate font-medium">{item.reflexion}</p>
                     </div>
                     <div className="flex gap-2 shrink-0">
-                      <button onClick={() => startEditing(item)} className="p-3 text-blue-500 hover:bg-blue-50 rounded-2xl transition-all"><Edit3 className="w-5 h-5" /></button>
-                      <button onClick={() => setConfirmDelete({ show: true, id: item.id })} className="p-3 text-red-400 hover:bg-red-50 rounded-2xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                      <button onClick={() => startEditing(item)} className="p-3 text-blue-500 hover:bg-blue-50 rounded-2xl transition-all">
+                        <Edit3 className="w-5 h-5" />
+                      </button>
+                      <button onClick={() => setConfirmDelete({ show: true, id: item.id })} className="p-3 text-red-400 hover:bg-red-50 rounded-2xl transition-all">
+                        <Trash2 className="w-5 h-5" />
+                      </button>
                     </div>
                   </div>
                 )) : (
