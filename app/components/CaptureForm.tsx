@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Info, AlertTriangle, AlertCircle, Calendar, ArrowLeft, 
   Send, Users, ImageIcon, Upload, Loader2,
-  AlignLeft, CheckCircle2, History, X, Trash2, Edit3, Clock, CheckCircle 
+  AlignLeft, History, X, Trash2, Edit3, Clock, CheckCircle 
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { FormState } from '../../types';
@@ -20,7 +20,11 @@ interface CaptureFormProps {
 export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFormProps) => {
   const [uploading, setUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Estados para Modales Personalizados
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showValidationModal, setShowValidationModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   const [showHistory, setShowHistory] = useState(false);
   const [historial, setHistorial] = useState<any[]>([]);
@@ -40,7 +44,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
   ];
 
   const fetchHistorial = async () => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('anuncios')
       .select('*')
       .order('creado_el', { ascending: false });
@@ -113,14 +117,19 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
       const { data: { publicUrl } } = supabase.storage.from('assets').getPublicUrl(filePath);
       onChange('imagen_url' as keyof FormState, publicUrl);
     } catch (err: any) {
-      alert("Error: " + err.message);
+      setErrorMessage("No se pudo subir la imagen. Intenta de nuevo.");
     } finally {
       setUploading(false);
     }
   };
 
   const handlePublish = async () => {
-    if (!form.titulo) return alert("Pon un título.");
+    // VALIDACIÓN ESTÉTICA: Reemplaza alert("Pon un título")
+    if (!form.titulo) {
+      setShowValidationModal(true);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const payload = {
@@ -139,13 +148,11 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
 
       if (error) throw error;
       
-      // MOSTRAR MODAL DE ÉXITO CON PRESENCIA
       setShowSuccessModal(true);
-      
       resetFormFields();
       fetchHistorial();
     } catch (err: any) {
-      alert("Error: " + err.message);
+      setErrorMessage("Error al guardar el aviso: " + err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -154,12 +161,48 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-4 py-6 w-full max-w-full overflow-x-hidden relative">
       
+      {/* MODAL DE VALIDACIÓN (REEMPLAZA AL ALERT DE TÍTULO) */}
+      <AnimatePresence>
+        {showValidationModal && (
+          <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-[#1b3a4a]/40 backdrop-blur-sm">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 text-center border border-slate-100"
+            >
+              <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-8 h-8 text-amber-500" />
+              </div>
+              <h3 className="text-[#1b3a4a] font-black text-xl mb-2 uppercase tracking-tighter">Título Requerido</h3>
+              <p className="text-slate-500 text-sm mb-8 leading-relaxed">Por favor, escribe el nombre de la Actividad o Evento antes de continuar.</p>
+              <button onClick={() => setShowValidationModal(false)} className="w-full bg-[#1b3a4a] text-white font-black py-4 rounded-2xl shadow-lg uppercase text-xs tracking-widest transition-all active:scale-95">
+                ENTENDIDO
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL DE ERROR (PARA FALLOS DE SUPABASE O CARGA) */}
+      <AnimatePresence>
+        {errorMessage && (
+          <div className="fixed inset-0 z-[260] flex items-center justify-center p-4 bg-red-500/20 backdrop-blur-sm">
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }}
+              className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 text-center"
+            >
+              <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-[#1b3a4a] font-black text-lg uppercase tracking-tighter mb-2">Algo salió mal</h3>
+              <p className="text-slate-500 text-xs mb-6 leading-relaxed">{errorMessage}</p>
+              <button onClick={() => setErrorMessage(null)} className="w-full bg-slate-800 text-white font-bold py-4 rounded-2xl uppercase text-[10px] tracking-widest">CERRAR</button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <button onClick={onBack} className="flex items-center gap-2 text-[#1b3a4a] font-bold text-sm">
           <ArrowLeft className="w-4 h-4" /> Volver
         </button>
-        <button onClick={() => setShowHistory(true)} className="flex items-center gap-2 bg-[#1b3a4a] text-white px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
+        <button onClick={() => setShowHistory(true)} className="flex items-center gap-2 bg-[#1b3a4a] text-white px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
           <History className="w-4 h-4" /> Historial
         </button>
       </div>
@@ -180,7 +223,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
         {/* ACTIVIDAD */}
         <div className="space-y-2 w-full">
           <label className="text-[10px] font-black uppercase text-white tracking-widest ml-1">ACTIVIDAD / EVENTO</label>
-          <input type="text" className="w-full bg-white rounded-2xl px-5 py-4 outline-none text-slate-800 text-base font-medium" value={form.titulo || ''} onChange={(e) => onChange('titulo', e.target.value)} />
+          <input type="text" className="w-full bg-white rounded-2xl px-5 py-4 outline-none text-slate-800 text-base font-medium placeholder:text-slate-300" placeholder="Nombre del evento..." value={form.titulo || ''} onChange={(e) => onChange('titulo', e.target.value)} />
         </div>
 
         {/* DESCRIPCIÓN */}
@@ -188,7 +231,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
           <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2 ml-1">
             <AlignLeft className="w-3 h-3" /> Descripción
           </label>
-          <textarea className="w-full bg-white rounded-2xl px-5 py-4 outline-none text-slate-800 min-h-[100px] text-base resize-none" value={form.mensaje || ''} onChange={(e) => onChange('mensaje', e.target.value)} />
+          <textarea className="w-full bg-white rounded-2xl px-5 py-4 outline-none text-slate-800 min-h-[100px] text-base resize-none placeholder:text-slate-300" placeholder="Detalles del aviso..." value={form.mensaje || ''} onChange={(e) => onChange('mensaje', e.target.value)} />
         </div>
 
         {/* MINISTERIO */}
@@ -254,33 +297,21 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
         </button>
       </div>
 
-      {/* MODAL DE ÉXITO (MENSAJE CON PRESENCIA) */}
+      {/* MODAL DE ÉXITO */}
       <AnimatePresence>
         {showSuccessModal && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-[#1b3a4a]/90 backdrop-blur-md">
-            <motion.div 
-              initial={{ scale: 0.8, opacity: 0 }} 
-              animate={{ scale: 1, opacity: 1 }} 
-              exit={{ scale: 0.8, opacity: 0 }}
+            <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }}
               className="bg-white rounded-[3rem] p-10 max-w-sm w-full shadow-2xl text-center space-y-8 border-4 border-green-500/20"
             >
               <div className="bg-green-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto shadow-inner">
                 <CheckCircle className="w-16 h-16 text-green-600" />
               </div>
-              
               <div className="space-y-2">
-                <h3 className="text-[#1b3a4a] font-black text-2xl uppercase tracking-tighter">¡Operación Exitosa!</h3>
-                <p className="text-slate-500 font-medium text-sm px-4">
-                  El aviso ha sido procesado y guardado correctamente en el sistema.
-                </p>
+                <h3 className="text-[#1b3a4a] font-black text-2xl uppercase tracking-tighter">¡Listo!</h3>
+                <p className="text-slate-500 font-medium text-sm px-4">El aviso ha sido publicado correctamente.</p>
               </div>
-
-              <button 
-                onClick={() => setShowSuccessModal(false)} 
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-black py-5 rounded-[1.5rem] shadow-lg shadow-green-200 uppercase text-xs tracking-widest transition-all active:scale-95"
-              >
-                Entendido, gracias
-              </button>
+              <button onClick={() => setShowSuccessModal(false)} className="w-full bg-green-600 hover:bg-green-700 text-white font-black py-5 rounded-[1.5rem] shadow-lg uppercase text-xs tracking-widest transition-all active:scale-95">CONTINUAR</button>
             </motion.div>
           </div>
         )}
@@ -291,23 +322,28 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
         {showHistory && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1b3a4a]/60 backdrop-blur-md">
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-2xl max-h-[80vh] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col">
-              <div className="p-8 border-b flex justify-between items-center bg-slate-50">
-                <h3 className="font-black text-[#1b3a4a] text-lg uppercase">Historial de Avisos</h3>
+              <div className="p-8 border-b flex justify-between items-center bg-slate-50 text-left">
+                <div>
+                  <h3 className="font-black text-[#1b3a4a] text-lg uppercase">Historial de Avisos</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Edita o elimina publicaciones</p>
+                </div>
                 <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-slate-200 rounded-full"><X className="w-6 h-6 text-slate-400" /></button>
               </div>
               <div className="p-6 overflow-y-auto space-y-4">
-                {historial.map((item) => (
-                  <div key={item.id} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex justify-between items-center">
+                {historial.length > 0 ? historial.map((item) => (
+                  <div key={item.id} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex justify-between items-center hover:bg-white transition-all shadow-sm">
                     <div className="flex flex-col min-w-0 pr-4 text-left">
                       <span className="text-[10px] font-black text-[#85A3A5] uppercase mb-1">{item.fecha_publicacion}</span>
-                      <p className="text-slate-600 text-sm truncate font-medium uppercase">{item.titulo}</p>
+                      <p className="text-slate-600 text-sm truncate font-black uppercase tracking-tight">{item.titulo}</p>
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => startEditing(item)} className="p-3 text-blue-500 hover:bg-blue-50 rounded-2xl transition-colors"><Edit3 className="w-5 h-5" /></button>
-                      <button onClick={() => setItemToDelete(item.id)} className="p-3 text-red-400 hover:bg-red-50 rounded-2xl transition-colors"><Trash2 className="w-5 h-5" /></button>
+                      <button onClick={() => startEditing(item)} className="p-3 text-blue-500 hover:bg-blue-50 rounded-2xl transition-all"><Edit3 className="w-5 h-5" /></button>
+                      <button onClick={() => setItemToDelete(item.id)} className="p-3 text-red-400 hover:bg-red-50 rounded-2xl transition-all"><Trash2 className="w-5 h-5" /></button>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest text-[10px]">No hay avisos registrados</div>
+                )}
               </div>
             </motion.div>
           </div>
@@ -319,12 +355,14 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
         {itemToDelete && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#1b3a4a]/80 backdrop-blur-sm">
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl text-center space-y-6">
-              <AlertCircle className="w-16 h-16 text-red-500 mx-auto" />
+              <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="w-8 h-8 text-red-500" />
+              </div>
               <h3 className="text-[#1b3a4a] font-black text-xl uppercase tracking-tighter">¿Eliminar Aviso?</h3>
-              <p className="text-slate-500 text-xs font-medium">Esta acción no se puede deshacer.</p>
+              <p className="text-slate-500 text-xs font-medium">Esta acción quitará el aviso de todas las pantallas permanentemente.</p>
               <div className="flex flex-col gap-3">
-                <button onClick={confirmDelete} className="w-full bg-red-500 text-white font-black py-4 rounded-2xl uppercase text-xs tracking-widest shadow-lg shadow-red-100">Sí, eliminar</button>
-                <button onClick={() => setItemToDelete(null)} className="w-full bg-slate-100 text-slate-600 font-black py-4 rounded-2xl uppercase text-xs tracking-widest">Cancelar</button>
+                <button onClick={confirmDelete} className="w-full bg-red-500 text-white font-black py-4 rounded-2xl uppercase text-xs tracking-widest shadow-lg active:scale-95 transition-all">SÍ, ELIMINAR</button>
+                <button onClick={() => setItemToDelete(null)} className="w-full bg-slate-100 text-slate-600 font-black py-4 rounded-2xl uppercase text-xs tracking-widest">CANCELAR</button>
               </div>
             </motion.div>
           </div>
