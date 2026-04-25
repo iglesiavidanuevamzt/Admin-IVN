@@ -2,15 +2,27 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Youtube, Send, Loader2, CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { Loader2, X, Check, AlertTriangle } from 'lucide-react'; 
 import { supabase } from '@/lib/supabase'; 
 import { Screen } from '../../types';
 
 export const HomeScreen = ({ onNavigate }: { onNavigate: (s: Screen) => void }) => {
   const [showYoutubeCard, setShowYoutubeCard] = useState(false);
   const [youtubeUrl, setYoutubeUrl] = useState('');
-  const [status, setStatus] = useState<{ tipo: 'success' | 'error', msg: string } | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  
+  // Nuevo estado para controlar el modal de respuesta
+  const [responseModal, setResponseModal] = useState<{
+    show: boolean;
+    type: 'success' | 'error';
+    title: string;
+    message: string;
+  }>({
+    show: false,
+    type: 'success',
+    title: '',
+    message: ''
+  });
 
   const adminCards: { id: Screen; title: string; iconPath: string }[] = [
     { id: 'devocional', title: 'Devocionales', iconPath: '/icons/logo_devocionales.png' },
@@ -19,115 +31,89 @@ export const HomeScreen = ({ onNavigate }: { onNavigate: (s: Screen) => void }) 
     { id: 'agenda-view', title: 'Agenda', iconPath: '/icons/logo_agenda.png' }
   ];
 
-  // FUNCIÓN PARA EXTRAER LOS 11 CARACTERES
   const extractVideoID = (input: string) => {
-    // Busca patrones comunes de YouTube y captura el ID de 11 caracteres
     const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
     const match = input.match(regExp);
-    
-    // Si es un link válido, extrae el grupo de captura correspondiente al ID
-    if (match && match[7].length === 11) {
-      return match[7];
-    }
-    
-    // Si el usuario pegó directamente los 11 caracteres (ej. Acnzrys7CM8)
+    if (match && match[7].length === 11) return match[7];
     const trimmed = input.trim();
-    if (trimmed.length === 11) {
-      return trimmed;
-    }
-
+    if (trimmed.length === 11) return trimmed;
     return null;
   };
 
   const handleYoutubeUpdate = async () => {
     const videoId = extractVideoID(youtubeUrl);
-
-    if (!youtubeUrl.trim()) {
-      setStatus({ tipo: 'error', msg: 'Pega un link primero' });
+    
+    if (!youtubeUrl.trim() || !videoId) {
+      setResponseModal({
+        show: true,
+        type: 'error',
+        title: '¡ERROR!',
+        message: 'Por favor, introduce un enlace o ID de YouTube válido.'
+      });
       return;
     }
-
-    if (!videoId) {
-      setStatus({ tipo: 'error', msg: 'No se detectó un ID válido' });
-      return;
-    }
-
+    
     setIsUpdating(true);
-    setStatus(null);
 
     try {
-      // ACTUALIZACIÓN EN TU TABLA 'video_youtube'
       const { error } = await supabase
         .from('video_youtube')
         .update({ valor: videoId }) 
-        .eq('id', '27ef9473-080b-40d5-be71-45c12c32521b'); // ID de tu captura de pantalla
-
+        .eq('id', '27ef9473-080b-40d5-be71-45c12c32521b');
+      
       if (error) throw error;
-
-      setStatus({ tipo: 'success', msg: `¡Guardado! ID: ${videoId}` });
+      
       setYoutubeUrl('');
-      // Cerramos la tarjeta tras el éxito
-      setTimeout(() => setShowYoutubeCard(false), 2500);
+      setShowYoutubeCard(false);
+      setResponseModal({
+        show: true,
+        type: 'success',
+        title: '¡LISTO!',
+        message: 'La transmisión en vivo ha sido actualizada correctamente.'
+      });
     } catch (error) {
-      console.error(error);
-      setStatus({ tipo: 'error', msg: 'Error de red o base de datos' });
+      setResponseModal({
+        show: true,
+        type: 'error',
+        title: '¡FALLÓ!',
+        message: 'Hubo un problema al conectar con la base de datos.'
+      });
     } finally {
       setIsUpdating(false);
-      setTimeout(() => setStatus(null), 4000);
     }
   };
 
   return (
     <div className="fixed inset-0 bg-gradient-to-b from-[#f5eae1] via-[#e5dfda] to-[#122e43] flex flex-col items-center justify-center p-6 overflow-hidden">
       
-      <motion.div 
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-8"
-      >
+      {/* TÍTULO PANEL */}
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
         <h1 className="font-serif text-3xl text-[#1b3a4a]">¡Administrador!</h1>
       </motion.div>
 
-      {/* ÁREA DINÁMICA DE YOUTUBE */}
-      <div className="w-full max-w-sm flex flex-col items-center mb-8 h-48 justify-center">
-        <AnimatePresence mode="wait">
-          {!showYoutubeCard ? (
-            <motion.button
-              key="btn-yt"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              onClick={() => setShowYoutubeCard(true)}
-              whileTap={{ scale: 0.95 }}
-              className="bg-red-600 text-white px-8 py-4 rounded-full flex items-center gap-3 shadow-xl font-bold text-sm uppercase tracking-widest border-2 border-white/20"
-            >
-              <Youtube size={24} />
-              Actualizar Vivo
-            </motion.button>
-          ) : (
+      {/* VENTANA DE CAPTURA */}
+      <div className="fixed top-72 left-0 right-0 z-[100] flex justify-center px-6 pointer-events-none">
+        <AnimatePresence>
+          {showYoutubeCard && (
             <motion.div
-              key="card-yt"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="w-full bg-white rounded-[2.5rem] p-6 shadow-2xl relative border border-white"
+              initial={{ opacity: 0, y: -50, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -50, scale: 0.9 }}
+              className="relative w-full max-w-sm bg-white rounded-[2.5rem] p-8 shadow-[0_20px_50px_rgba(0,0,0,0.3)] border-2 border-slate-100 pointer-events-auto"
             >
-              <button 
-                onClick={() => setShowYoutubeCard(false)}
-                className="absolute top-5 right-5 text-slate-300 hover:text-slate-500 transition-colors"
-              >
-                <X size={20} />
+              <button onClick={() => setShowYoutubeCard(false)} className="absolute top-6 right-6 p-2 text-slate-300 hover:text-red-500 rounded-full transition-all">
+                <X size={24} strokeWidth={2.5} />
               </button>
 
-              <div className="flex items-center gap-2 mb-5 px-1">
-                <Youtube className="text-red-600" size={18} />
-                <span className="text-[10px] font-black text-[#1b3a4a] uppercase tracking-widest">Link de Transmisión</span>
+              <div className="flex items-center gap-3 mb-6 px-1">
+                <img src="/icons/youtube.png" alt="YouTube" className="w-[80px] h-auto object-contain" />
+                <span className="text-[10px] font-black text-[#1b3a4a] uppercase tracking-widest">Configurar Vivo</span>
               </div>
               
               <div className="flex flex-col gap-3">
                 <input 
                   type="text"
-                  placeholder="Pega el link completo..."
+                  placeholder="Código o Link de YouTube..."
                   value={youtubeUrl}
                   onChange={(e) => setYoutubeUrl(e.target.value)}
                   className="w-full bg-slate-50 rounded-2xl px-5 py-4 text-sm outline-none border-2 border-slate-100 focus:border-red-200 transition-all text-[#1b3a4a]"
@@ -136,71 +122,91 @@ export const HomeScreen = ({ onNavigate }: { onNavigate: (s: Screen) => void }) 
                 <button
                   onClick={handleYoutubeUpdate}
                   disabled={isUpdating}
-                  className="w-full bg-[#1b3a4a] text-white py-4 rounded-2xl shadow-lg disabled:opacity-50 font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                  className="w-full bg-[#1b3a4a] text-white py-4 rounded-2xl shadow-lg font-bold flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
                 >
                   {isUpdating ? <Loader2 size={20} className="animate-spin" /> : 'Publicar Ahora'}
                 </button>
               </div>
-
-              <AnimatePresence>
-                {status && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className={`mt-4 flex items-center justify-center gap-2 text-[10px] font-bold uppercase py-3 rounded-xl ${
-                      status.tipo === 'success' ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'
-                    }`}
-                  >
-                    {status.tipo === 'success' ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
-                    {status.msg}
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* GRID DE ACCIONES RÁPIDAS */}
+      {/* MODAL DE RESPUESTA (ÉXITO O ERROR) */}
+      <AnimatePresence>
+        {responseModal.show && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-[#122e43]/90 backdrop-blur-md flex items-center justify-center p-6"
+          >
+            <motion.div 
+              initial={{ scale: 0.8, y: 20 }} animate={{ scale: 1, y: 0 }}
+              className="bg-white rounded-[3rem] p-10 w-full max-w-sm flex flex-col items-center text-center shadow-2xl"
+            >
+              {/* Icono Dinámico */}
+              <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-8 ${responseModal.type === 'success' ? 'bg-green-100' : 'bg-red-100'}`}>
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg ${responseModal.type === 'success' ? 'bg-[#00b341] shadow-green-200' : 'bg-[#e53e3e] shadow-red-200'}`}>
+                  {responseModal.type === 'success' ? 
+                    <Check size={40} strokeWidth={4} className="text-white" /> : 
+                    <AlertTriangle size={40} strokeWidth={3} className="text-white" />
+                  }
+                </div>
+              </div>
+
+              <h2 className="text-[#1b3a4a] text-3xl font-black uppercase tracking-tighter mb-2">
+                {responseModal.title}
+              </h2>
+              <p className="text-slate-500 text-sm font-medium leading-relaxed mb-10">
+                {responseModal.message}
+              </p>
+
+              <button 
+                onClick={() => setResponseModal({ ...responseModal, show: false })}
+                className={`w-full text-white py-5 rounded-3xl font-black uppercase tracking-widest shadow-xl transition-all active:scale-95 ${
+                  responseModal.type === 'success' ? 'bg-[#00b341] shadow-green-100 hover:bg-green-600' : 'bg-[#e53e3e] shadow-red-100 hover:bg-red-600'
+                }`}
+              >
+                {responseModal.type === 'success' ? 'CONTINUAR' : 'REINTENTAR'}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* PANEL PRINCIPAL */}
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-[#faf7f2]/80 backdrop-blur-sm rounded-[3rem] p-8 shadow-2xl border border-white/30 w-full max-w-sm flex flex-col items-center"
+        className="relative bg-[#faf7f2]/80 backdrop-blur-sm rounded-[3rem] p-8 shadow-2xl border border-white/30 w-full max-w-sm flex flex-col items-center mt-4"
       >
-        <h2 className="text-[11px] font-black text-[#1b3a4a]/40 uppercase tracking-[0.3em] mb-8">
-          SECCIONES
-        </h2>
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setShowYoutubeCard(true)}
+          className="absolute top-2 right-6 rounded-2xl bg-white flex items-center justify-center shadow-lg border border-slate-100 p-4 min-w-[110px] z-20"
+        >
+          <img src="/icons/youtube.png" alt="YouTube" className="w-20 h-auto object-contain" />
+        </motion.button>
+
+        <h2 className="text-[11px] font-black text-[#1b3a4a]/40 uppercase tracking-[0.3em] mb-8 mt-6">SECCIONES</h2>
 
         <div className="grid grid-cols-2 gap-6 w-full">
           {adminCards.map((card) => (
             <motion.button 
-              key={card.id}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => onNavigate(card.id)}
+              key={card.id} whileTap={{ scale: 0.9 }} onClick={() => onNavigate(card.id)}
               className="flex flex-col items-center group w-full"
             >
-              <div className="w-full aspect-square bg-[#1b3a4a] rounded-[1.8rem] flex items-center justify-center p-5 shadow-lg shadow-[#1b3a4a]/20 group-hover:bg-[#2a4d5f] transition-colors overflow-hidden">
-                <img 
-                  src={card.iconPath} 
-                  alt={card.title}
-                  className="w-full h-full object-contain"
-                />
+              <div className="w-full aspect-square bg-[#1b3a4a] rounded-[1.8rem] flex items-center justify-center p-5 shadow-lg shadow-[#1b3a4a]/20 overflow-hidden">
+                <img src={card.iconPath} alt={card.title} className="w-full h-full object-contain" />
               </div>
-              <span className="mt-3 text-[10px] font-bold uppercase tracking-widest text-[#1b3a4a]">
-                {card.title}
-              </span>
+              <span className="mt-3 text-[10px] font-bold uppercase tracking-widest text-[#1b3a4a]">{card.title}</span>
             </motion.button>
           ))}
         </div>
       </motion.div>
 
-      {/* Footer */}
       <div className="absolute bottom-6 flex items-center gap-2 opacity-30">
         <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-        <span className="text-[8px] font-bold tracking-[0.2em] text-[#1b3a4a] uppercase">
-          Sistema Operativo Vida Interna
-        </span>
+        <span className="text-[8px] font-bold tracking-[0.2em] text-[#1b3a4a] uppercase">Sistema Operativo Vida Interna</span>
       </div>
     </div>
   );
