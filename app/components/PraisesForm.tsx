@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Music, AlignLeft, ArrowLeft, Send, 
   Loader2, Settings, X, Trash2, Edit3, 
-  Search, CheckCircle, AlertTriangle, Copy 
+  Search, CheckCircle, AlertTriangle, Copy, User
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { FormState } from '../../types';
@@ -50,6 +50,7 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
   const resetLocalForm = () => {
     setEditingId(null);
     onChange('titulo' as keyof FormState, '');
+    onChange('autor' as keyof FormState, '');
     onChange('letra' as keyof FormState, '');
   };
 
@@ -83,7 +84,12 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
 
     setIsSubmitting(true);
     try {
-      const payload = { titulo: form.titulo, letra: form.letra };
+      const autorTrim = (form.autor ?? '').trim();
+      const payload = {
+        titulo: form.titulo,
+        letra: form.letra,
+        autor: autorTrim || null,
+      };
       
       if (editingId) {
         const { error } = await supabase.from('alabanzas').update(payload).eq('id', editingId);
@@ -119,6 +125,7 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
   const startEditing = (item: any) => {
     setEditingId(item.id);
     onChange('titulo' as keyof FormState, item.titulo);
+    onChange('autor' as keyof FormState, item.autor ?? '');
     onChange('letra' as keyof FormState, item.letra);
     setShowHistory(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -233,6 +240,19 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
 
         <div className="space-y-3">
           <label className="flex items-center gap-2 text-[10px] font-black text-white/90 uppercase tracking-widest ml-1">
+            <User className="w-3 h-3" /> Autor / intérprete
+          </label>
+          <input
+            type="text"
+            className="w-full rounded-2xl bg-white px-6 py-4 text-base font-medium text-slate-800 shadow-inner outline-none placeholder:text-slate-300"
+            placeholder="Nombre del autor o quien interpreta la alabanza..."
+            value={form.autor ?? ''}
+            onChange={(e) => onChange('autor' as keyof FormState, e.target.value)}
+          />
+        </div>
+
+        <div className="space-y-3">
+          <label className="flex items-center gap-2 text-[10px] font-black text-white/90 uppercase tracking-widest ml-1">
             <AlignLeft className="w-3 h-3" /> LETRA DE LA ALABANZA
           </label>
           <textarea 
@@ -283,7 +303,10 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
                   <div key={item.id} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex justify-between items-center hover:bg-white transition-all shadow-sm">
                     <div className="overflow-hidden pr-4">
                       <h4 className="text-sm font-black text-[#1b3a4a] truncate uppercase tracking-tight">{item.titulo}</h4>
-                      <p className="text-slate-400 text-[10px] truncate font-medium uppercase tracking-widest">{item.letra?.substring(0, 60)}...</p>
+                      {item.autor ? (
+                        <p className="truncate text-[10px] font-bold uppercase tracking-widest text-[#85A3A5]">{item.autor}</p>
+                      ) : null}
+                      <p className="truncate text-[10px] font-medium uppercase tracking-widest text-slate-400">{item.letra?.substring(0, 60)}...</p>
                     </div>
                     <div className="flex gap-2 shrink-0">
                       <button onClick={() => startEditing(item)} className="p-3 text-blue-500 hover:bg-blue-50 rounded-2xl transition-all"><Edit3 className="w-5 h-5" /></button>

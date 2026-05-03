@@ -28,4 +28,8 @@ export interface FormState {
   vigenciaAnuncio: string;
   imagen_url: string;
   letra?: string;
+  /** Intérprete/autor (tabla alabanzas). */
+  autor?: string;
+  /** Aviso fijo: sin vigencia por fechas (tabla anuncios). */
+  es_fijo: boolean;
 }

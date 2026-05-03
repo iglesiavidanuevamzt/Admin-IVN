@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter, Crimson_Pro } from 'next/font/google';
 import './globals.css'; 
 
@@ -11,6 +11,12 @@ const crimsonPro = Crimson_Pro({
   subsets: ['latin'],
   variable: '--font-serif',
 });
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+};
 
 export const metadata: Metadata = {
   title: 'Vida Nueva Awaken - Admin',
@@ -27,7 +33,10 @@ export const metadata: Metadata = {
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
     <html lang="es" className={`${inter.variable} ${crimsonPro.variable}`}>
-      <body suppressHydrationWarning className="font-sans bg-[#FFFFFF] text-[#10172A]">
+      <body
+        suppressHydrationWarning
+        className="min-h-dvh font-sans bg-slate-50 text-slate-900 antialiased"
+      >
         {children}
       </body>
     </html>

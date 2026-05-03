@@ -6,6 +6,14 @@
 }
 
 @layer base {
+  html {
+    background-color: #f8fafc;
+  }
+  body {
+    background-color: #f8fafc;
+    color: #0f172a;
+  }
+
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
   }

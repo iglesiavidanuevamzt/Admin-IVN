@@ -33,7 +33,8 @@ export default function AdminApp() {
     descripcion: '',
     publicarEnTablon: false,
     vigenciaAnuncio: '24h',
-    imagen_url: ''
+    imagen_url: '',
+    es_fijo: false
   });
 
   const updateForm = (field: keyof FormState, value: any) => {
@@ -43,21 +44,23 @@ export default function AdminApp() {
   const handleNavigate = (screen: Screen) => {
     if (screen === 'avisos') {
       setForm(prev => ({
-        ...prev, id: null, titulo: '', mensaje: '', 
-        imagen_url: '', fechaExpiracion: getFechaHoy() 
+        ...prev, id: null, titulo: '', mensaje: '',
+        imagen_url: '', fechaExpiracion: getFechaHoy(), es_fijo: false
       }));
     }
     if (screen === 'alabanzas') {
       setForm(prev => ({
-        ...prev, id: null, titulo: '', letra: ''
+        ...prev, id: null, titulo: '', letra: '', autor: ''
       }));
     }
     setCurrentScreen(screen);
   };
 
+  const isAgendaView = currentScreen === ('agenda-view' as any);
+
   return (
-    <div className="min-h-screen bg-slate-50 overflow-x-hidden">
-      <Navbar currentScreen={currentScreen} onNavigate={handleNavigate} />
+    <div className="min-h-screen overflow-x-hidden bg-slate-50">
+      {!isAgendaView && <Navbar currentScreen={currentScreen} onNavigate={handleNavigate} />}
       
       {/* BOTÓN RÁPIDO PARA VER AGENDA (Opcional, puedes ponerlo en el Navbar o Home) 
       <div className="w-full px-4 max-w-4xl mx-auto pt-4 flex justify-end">
@@ -69,7 +72,7 @@ export default function AdminApp() {
          </button>
       </div>*/}
 
-      <main className="w-full max-w-4xl mx-auto px-4">
+      <main className="mx-auto w-full max-w-4xl px-4">
         {currentScreen === 'home' && <HomeScreen onNavigate={handleNavigate} />}
         
         {currentScreen === 'devocional' && (
@@ -106,7 +109,9 @@ export default function AdminApp() {
                 mensaje: aviso.mensaje,
                 urgencia: aviso.urgencia,
                 fechaExpiracion: aviso.fecha_expiracion,
-                imagen_url: aviso.imagen_url
+                fechaPublicacion: aviso.fecha_public_acion || aviso.fecha_publicacion || getFechaHoy(),
+                imagen_url: aviso.imagen_url,
+                es_fijo: aviso.es_fijo === true
               });
               setCurrentScreen('avisos');
             }}
@@ -114,15 +119,19 @@ export default function AdminApp() {
         )}
 
         {/* --- NUEVA PANTALLA: CALENDARIO / AGENDA --- */}
-        {currentScreen === ('agenda-view' as any) && (
-          <div className="py-6">
-            <button 
-              onClick={() => setCurrentScreen('home')}
-              className="mb-4 ml-4 flex items-center gap-2 text-[#1b3a4a] font-bold text-xs hover:underline"
-            >
-              ← Volver al Inicio
-            </button>
-            <CalendarView onBack={() => handleNavigate('home')} />
+        {isAgendaView && (
+          <div className="w-full px-0 pb-2 sm:px-0">
+            {/* Un solo offset superior: altura barra fija del calendario + safe-area (sin Navbar duplicado) */}
+            <div className="pt-[calc(3rem+env(safe-area-inset-top,0px))] sm:pt-[calc(4rem+env(safe-area-inset-top,0px))]">
+              <button
+                type="button"
+                onClick={() => setCurrentScreen('home')}
+                className="mb-3 ml-0 flex items-center gap-2 rounded-xl px-2 py-2 text-left text-xs font-bold text-[#1e293b] transition-colors hover:bg-slate-200/70 active:bg-slate-200 sm:mb-4 sm:px-3 sm:text-sm"
+              >
+                ← Volver al Inicio
+              </button>
+              <CalendarView onBack={() => handleNavigate('home')} />
+            </div>
           </div>
         )}
       </main>

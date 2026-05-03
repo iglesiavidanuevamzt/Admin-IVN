@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Info, AlertTriangle, AlertCircle, Calendar, ArrowLeft, 
   Send, Users, ImageIcon, Upload, Loader2,
-  AlignLeft, History, X, Trash2, Edit3, Clock, CheckCircle, Copy, Search 
+  AlignLeft, History, X, Trash2, Edit3, Clock, CheckCircle, Copy, Search, Anchor
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { FormState } from '../../types';
@@ -18,6 +18,7 @@ interface CaptureFormProps {
 }
 
 export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFormProps) => {
+  const esFijo = form.es_fijo === true;
   const [uploading, setUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -68,19 +69,21 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
   });
 
   const aplicarVigenciaRapida = (dias: number) => {
-    const base = (form as any).fechaPublicacion ? new Date((form as any).fechaPublicacion + 'T12:00:00') : new Date();
+    if (esFijo) return;
+    const base = form.fechaPublicacion ? new Date(form.fechaPublicacion + 'T12:00:00') : new Date();
     const fin = new Date(base);
     fin.setDate(base.getDate() + dias);
-    onChange('fechaExpiracion' as keyof FormState, fin.toISOString().split('T')[0]);
+    onChange('fechaExpiracion', fin.toISOString().split('T')[0]);
   };
 
   useEffect(() => {
-    const pub = (form as any).fechaPublicacion;
-    const exp = (form as any).fechaExpiracion;
+    if (esFijo) return;
+    const pub = form.fechaPublicacion;
+    const exp = form.fechaExpiracion;
     if (pub && exp && exp < pub) {
-      onChange('fechaExpiracion' as keyof FormState, pub);
+      onChange('fechaExpiracion', pub);
     }
-  }, [(form as any).fechaPublicacion, (form as any).fechaExpiracion]);
+  }, [form.fechaPublicacion, form.fechaExpiracion, esFijo]);
 
   const resetFormFields = () => {
     const hoy = new Date().toISOString().split('T')[0]; 
@@ -91,8 +94,9 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
     onChange('imagen_url' as keyof FormState, '');
     onChange('ministerio' as keyof FormState, 'General');
     onChange('urgencia' as keyof FormState, 'informativo');
-    onChange('fechaExpiracion' as keyof FormState, hoy);
-    onChange('fechaPublicacion' as keyof FormState, hoy);
+    onChange('fechaExpiracion', hoy);
+    onChange('fechaPublicacion', hoy);
+    onChange('es_fijo', false);
   };
 
   const startEditing = (item: any) => {
@@ -103,8 +107,9 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
     onChange('ministerio' as keyof FormState, item.ministerio);
     onChange('urgencia' as keyof FormState, item.urgencia);
     onChange('fechaExpiracion' as keyof FormState, item.fecha_expiracion);
-    onChange('fechaPublicacion' as keyof FormState, item.fecha_public_acion || item.fecha_publicacion);
+    onChange('fechaPublicacion', item.fecha_public_acion || item.fecha_publicacion);
     onChange('imagen_url' as keyof FormState, item.imagen_url);
+    onChange('es_fijo', item.es_fijo === true);
     setShowHistory(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -161,10 +166,11 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
         titulo: form.titulo,
         ministerio: form.ministerio || 'General',
         urgencia: form.urgencia || 'informativo',
-        fecha_expiracion: (form as any).fechaExpiracion,
-        fecha_publicacion: (form as any).fechaPublicacion,
+        fecha_expiracion: form.fechaExpiracion,
+        fecha_publicacion: form.fechaPublicacion,
         imagen_url: form.imagen_url || '',
         mensaje: form.mensaje || '',
+        es_fijo: esFijo,
       };
 
       const { error } = (editingId || form.id) 
@@ -302,26 +308,83 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
           </div>
         </div>
 
+        {/* AVISO FIJO: TRUE en BD; desactiva solo caducidad y vigencia rápida */}
+        <motion.div
+          layout
+          className={`flex items-center justify-between gap-3 rounded-3xl border p-4 transition-colors ${
+            esFijo ? 'border-amber-500/50 bg-amber-500/10' : 'border-white/10 bg-[#1b3a4a]/20'
+          }`}
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <Anchor className={`h-5 w-5 shrink-0 transition-colors ${esFijo ? 'text-amber-500' : 'text-white/75'}`} />
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-widest text-white">Aviso fijo</p>
+              <p className="text-[11px] font-medium leading-snug text-white/60">
+                Sin fecha de caducidad: el aviso se muestra de forma continua.
+              </p>
+            </div>
+          </div>
+          <motion.button
+            type="button"
+            role="switch"
+            aria-checked={esFijo}
+            onClick={() => onChange('es_fijo', !esFijo)}
+            className={`relative h-8 w-14 shrink-0 rounded-full p-1 transition-colors ${
+              esFijo ? 'bg-amber-500' : 'bg-[#1b3a4a]/70'
+            }`}
+            whileTap={{ scale: 0.95 }}
+          >
+            <motion.span
+              className="absolute top-1 left-1 block h-6 w-6 rounded-full bg-white shadow-md"
+              initial={false}
+              animate={{ x: esFijo ? 20 : 0 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 32 }}
+            />
+          </motion.button>
+        </motion.div>
+
         {/* FECHAS - CORRECCIÓN DE SEPARACIÓN EN MÓVIL */}
         <div className="space-y-6 pt-4 border-t border-white/20">
           <div className="flex flex-col sm:flex-row gap-4 w-full">
             <div className="space-y-2 flex-1">
               <label className="text-[11px] font-black uppercase text-white tracking-widest ml-1 block">Publicación</label>
-              <input type="date" className="w-full bg-white rounded-2xl px-4 py-4 text-slate-700 text-base font-bold shadow-sm outline-none appearance-none" value={(form as any).fechaPublicacion || ''} onChange={(e) => onChange('fechaPublicacion' as keyof FormState, e.target.value)} />
+              <input
+                type="date"
+                className="w-full rounded-2xl bg-white px-4 py-4 text-base font-bold text-slate-700 shadow-sm outline-none appearance-none"
+                value={form.fechaPublicacion || ''}
+                onChange={(e) => onChange('fechaPublicacion', e.target.value)}
+              />
             </div>
-            <div className="space-y-2 flex-1">
+            <div className={`space-y-2 flex-1 ${esFijo ? 'opacity-40' : ''}`}>
               <label className="text-[11px] font-black uppercase text-white tracking-widest ml-1 block">Caducidad</label>
-              <input type="date" className="w-full bg-white rounded-2xl px-4 py-4 text-slate-700 text-base font-bold shadow-sm outline-none appearance-none" value={(form as any).fechaExpiracion || ''} onChange={(e) => onChange('fechaExpiracion' as keyof FormState, e.target.value)} />
+              <input
+                type="date"
+                disabled={esFijo}
+                className={`w-full rounded-2xl bg-white px-4 py-4 text-base font-bold text-slate-700 shadow-sm outline-none appearance-none ${
+                  esFijo ? 'pointer-events-none' : ''
+                }`}
+                value={form.fechaExpiracion || ''}
+                onChange={(e) => onChange('fechaExpiracion', e.target.value)}
+              />
             </div>
           </div>
 
-          <div className="space-y-4 bg-[#1b3a4a]/30 p-5 rounded-[2.5rem] border border-white/10 shadow-inner">
-            <label className="text-[12px] font-black uppercase text-white tracking-widest flex items-center gap-2 ml-1">
-              <Clock className="w-4 h-4" /> VIGENCIA RÁPIDA
+          <div
+            className={`space-y-4 rounded-[2.5rem] border border-white/10 bg-[#1b3a4a]/30 p-5 shadow-inner transition-[filter,opacity] ${
+              esFijo ? 'pointer-events-none grayscale opacity-60' : ''
+            }`}
+          >
+            <label className="text-[12px] font-black uppercase tracking-widest text-white flex items-center gap-2 ml-1">
+              <Clock className="h-4 w-4" /> VIGENCIA RÁPIDA
             </label>
             <div className="grid grid-cols-2 gap-3">
               {opcionesVigencia.map((opt) => (
-                <button key={opt.dias} type="button" onClick={() => aplicarVigenciaRapida(opt.dias)} className="bg-[#1b3a4a] hover:bg-[#2a556b] text-white text-sm font-black py-4 px-2 rounded-2xl transition-all shadow-xl border border-white/20 active:scale-95">
+                <button
+                  key={opt.dias}
+                  type="button"
+                  onClick={() => aplicarVigenciaRapida(opt.dias)}
+                  className="rounded-2xl border border-white/20 bg-[#1b3a4a] py-4 px-2 text-sm font-black text-white shadow-xl transition-all hover:bg-[#2a556b] active:scale-95"
+                >
                   {opt.label}
                 </button>
               ))}
