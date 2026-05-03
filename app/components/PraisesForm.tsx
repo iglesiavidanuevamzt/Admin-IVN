@@ -144,11 +144,29 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Copy className="w-8 h-8 text-[#85A3A5]" />
               </div>
-              <h3 className="text-[#1b3a4a] font-black text-xl mb-2 uppercase tracking-tighter">Contenido Duplicado</h3>
-              <p className="text-slate-500 text-sm mb-8 leading-relaxed px-2">Esta alabanza (título o letra) ya existe en la biblioteca. Verifica en el buscador antes de agregarla nuevamente.</p>
-              <button onClick={() => setShowDuplicateModal(false)} className="w-full bg-[#1b3a4a] text-white font-black py-4 rounded-2xl shadow-lg uppercase text-xs tracking-widest transition-all active:scale-95">
-                REVISAR BIBLIOTECA
-              </button>
+              <h3 className="text-[#1b3a4a] font-black text-xl mb-2 uppercase tracking-tighter">Contenido duplicado</h3>
+              <p className="mb-6 px-2 text-sm leading-relaxed text-slate-500">
+                Esta alabanza (título o letra) ya existe en la biblioteca. Puedes corregir el texto o limpiar todo el formulario.
+              </p>
+              <div className="flex flex-col gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetLocalForm();
+                    setShowDuplicateModal(false);
+                  }}
+                  className="w-full rounded-2xl border-2 border-slate-200 bg-slate-50 py-4 text-xs font-black uppercase tracking-widest text-[#1e293b] transition-all hover:bg-slate-100 active:scale-[0.98]"
+                >
+                  Limpiar todo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDuplicateModal(false)}
+                  className="w-full rounded-2xl bg-[#1b3a4a] py-4 text-xs font-black uppercase tracking-widest text-white shadow-lg transition-all active:scale-95"
+                >
+                  Corregir
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
@@ -226,7 +244,16 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
       </div>
 
       {/* FORMULARIO */}
-      <div className="w-full bg-[#85A3A5] rounded-[2.5rem] shadow-2xl border border-white/10 p-6 sm:p-10 space-y-8">
+      <div className="relative space-y-8 rounded-[2.5rem] border border-white/10 bg-[#85A3A5] p-6 pb-8 pt-14 shadow-2xl sm:p-10 sm:pb-10 sm:pt-16">
+        <button
+          type="button"
+          onClick={resetLocalForm}
+          className="absolute right-4 top-4 flex items-center gap-1.5 rounded-xl border border-white/30 bg-white/15 px-2.5 py-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:bg-white/25 active:scale-95 sm:right-6 sm:top-6 sm:gap-2 sm:px-3"
+          aria-label="Limpiar formulario"
+        >
+          <Trash2 className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
+          <span>Limpiar</span>
+        </button>
         <div className="space-y-3">
           <label className="flex items-center gap-2 text-[10px] font-black text-white/90 uppercase tracking-widest ml-1">
             <Music className="w-3 h-3" /> TÍTULO DE LA ALABANZA

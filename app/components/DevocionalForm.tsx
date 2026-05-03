@@ -120,6 +120,13 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const resetFormToInitial = () => {
+    const hoy = new Date().toISOString().split('T')[0];
+    setEditingId(null);
+    onChange('fechaDevocional', hoy);
+    onChange('reflexion', '');
+  };
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-4 py-6 w-full max-w-full overflow-x-hidden relative">
       
@@ -134,8 +141,26 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
                 <Copy className="w-8 h-8 text-[#85A3A5]" />
               </div>
               <h3 className="text-[#1b3a4a] font-black text-xl mb-2 uppercase tracking-tighter">Devocional Repetido</h3>
-              <p className="text-slate-500 text-sm mb-8 leading-relaxed">Esta reflexión ya existe en tu historial.</p>
-              <button onClick={() => setShowDuplicateModal(false)} className="w-full bg-[#1b3a4a] text-white font-black py-4 rounded-2xl shadow-lg uppercase text-xs tracking-widest transition-all active:scale-95">ENTENDIDO</button>
+              <p className="text-slate-500 text-sm mb-6 leading-relaxed">Esta reflexión ya existe en tu historial.</p>
+              <div className="flex flex-col gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetFormToInitial();
+                    setShowDuplicateModal(false);
+                  }}
+                  className="w-full border-2 border-slate-200 bg-slate-50 py-4 text-xs font-black uppercase tracking-widest text-[#1e293b] transition-all hover:bg-slate-100 active:scale-[0.98] rounded-2xl"
+                >
+                  Limpiar todo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDuplicateModal(false)}
+                  className="w-full bg-[#1b3a4a] py-4 text-xs font-black uppercase tracking-widest text-white shadow-lg transition-all active:scale-95 rounded-2xl"
+                >
+                  Corregir
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
@@ -207,7 +232,16 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
       </div>
 
       {/* FORMULARIO DE ENTRADA */}
-      <div className="w-full bg-[#85A3A5] rounded-[2.5rem] shadow-2xl p-5 sm:p-8 space-y-6 text-left border border-white/10 flex flex-col box-border">
+      <div className="relative box-border flex w-full flex-col space-y-6 rounded-[2.5rem] border border-white/10 bg-[#85A3A5] p-5 pb-6 pt-12 text-left shadow-2xl sm:p-8 sm:pb-8 sm:pt-14">
+        <button
+          type="button"
+          onClick={resetFormToInitial}
+          className="absolute right-4 top-4 flex items-center gap-1.5 rounded-xl border border-white/30 bg-white/15 px-2.5 py-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:bg-white/25 active:scale-95 sm:right-5 sm:top-5 sm:gap-2 sm:px-3"
+          aria-label="Limpiar formulario"
+        >
+          <Trash2 className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
+          <span>Limpiar</span>
+        </button>
         <div className="flex flex-col w-full space-y-2">
           <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/90 ml-1">
             <Calendar className="w-3 h-3" /> FECHA DEL DEVOCIONAL
@@ -244,7 +278,14 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
           {isSubmitting ? 'PROCESANDO...' : editingId ? 'GUARDAR MODIFICACIÓN' : 'PUBLICAR DEVOCIONAL'}
         </button>
         {editingId && (
-          <button onClick={() => { setEditingId(null); onChange('reflexion', ''); }} className="text-[#1b3a4a] text-xs font-black underline uppercase tracking-tighter opacity-70 hover:opacity-100 transition-all">
+          <button
+            type="button"
+            onClick={() => {
+              setEditingId(null);
+              onChange('reflexion', '');
+            }}
+            className="text-[#1b3a4a] text-xs font-black uppercase tracking-tighter underline opacity-70 transition-all hover:opacity-100"
+          >
             ✕ Cancelar Edición
           </button>
         )}
