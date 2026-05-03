@@ -1,19 +1,23 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Navbar } from './components/Navbar';
 import { HomeScreen } from './components/HomeScreen';
 import { DevocionalForm } from './components/DevocionalForm';
-import { CaptureForm } from './components/CaptureForm'; 
-import { HistoryView } from './components/HistoryView'; 
+import { CaptureForm } from './components/CaptureForm';
+import { HistoryView } from './components/HistoryView';
 import { PraisesForm } from './components/PraisesForm';
-import { CalendarView } from './components/CalendarView'; 
+import { CalendarView } from './components/CalendarView';
 import { FormState, Screen } from '../types';
+import { supabase } from '@/lib/supabase-browser';
+import { canAccessScreen, homeCardsForRole, isSuperAdmin } from '@/lib/roles';
 
 const getFechaHoy = () => new Date().toISOString().split('T')[0];
 
 export default function AdminApp() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
+  const [appRol, setAppRol] = useState<string | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
   
   const [form, setForm] = useState<FormState>({
     id: null,
@@ -38,10 +42,44 @@ export default function AdminApp() {
   });
 
   const updateForm = (field: keyof FormState, value: any) => {
-    setForm(prev => ({ ...prev, [field]: value }));
+    setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setProfileLoading(true);
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user || cancelled) {
+          if (!cancelled) setAppRol(null);
+          return;
+        }
+        const { data } = await supabase.from('perfiles').select('rol').eq('user_id', user.id).maybeSingle();
+        if (!cancelled) setAppRol(typeof data?.rol === 'string' ? data.rol.trim() : null);
+      } finally {
+        if (!cancelled) setProfileLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (profileLoading) return;
+    if (!canAccessScreen(appRol, currentScreen)) {
+      setCurrentScreen('home');
+    }
+  }, [appRol, profileLoading, currentScreen]);
+
+  const homeCards = useMemo(() => homeCardsForRole(appRol), [appRol]);
+  const showUserManagement = isSuperAdmin(appRol);
+
   const handleNavigate = (screen: Screen) => {
+    if (!canAccessScreen(appRol, screen)) return;
     if (screen === 'avisos') {
       setForm(prev => ({
         ...prev, id: null, titulo: '', mensaje: '',
@@ -56,11 +94,17 @@ export default function AdminApp() {
     setCurrentScreen(screen);
   };
 
-  const isAgendaView = currentScreen === ('agenda-view' as any);
+  const isAgendaView = currentScreen === 'agenda-view';
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-slate-50">
-      {!isAgendaView && <Navbar currentScreen={currentScreen} onNavigate={handleNavigate} />}
+      {!isAgendaView && (
+        <Navbar
+          currentScreen={currentScreen}
+          onNavigate={handleNavigate}
+          showUserManagement={showUserManagement}
+        />
+      )}
       
       {/* BOTÓN RÁPIDO PARA VER AGENDA (Opcional, puedes ponerlo en el Navbar o Home) 
       <div className="w-full px-4 max-w-4xl mx-auto pt-4 flex justify-end">
@@ -73,7 +117,14 @@ export default function AdminApp() {
       </div>*/}
 
       <main className="mx-auto w-full max-w-4xl px-4">
-        {currentScreen === 'home' && <HomeScreen onNavigate={handleNavigate} />}
+        {currentScreen === 'home' && (
+          <HomeScreen
+            onNavigate={handleNavigate}
+            cards={homeCards}
+            profileLoading={profileLoading}
+            showUserManagement={showUserManagement}
+          />
+        )}
         
         {currentScreen === 'devocional' && (
           <DevocionalForm form={form} onChange={updateForm} onBack={() => setCurrentScreen('home')} />
@@ -92,12 +143,12 @@ export default function AdminApp() {
             form={form} 
             onChange={updateForm} 
             onBack={() => setCurrentScreen('home')} 
-            onShowHistory={() => setCurrentScreen('history' as any)} 
+            onShowHistory={() => setCurrentScreen('history')}
           />
         )}
 
         {/* PANTALLA DE HISTORIAL */}
-        {currentScreen === ('history' as any) && (
+        {currentScreen === 'history' && (
           <HistoryView 
             onBack={() => setCurrentScreen('avisos')} 
             onEdit={(aviso) => {

@@ -1,13 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import { Clock, Loader2, ChevronLeft, ChevronUp, ChevronDown } from 'lucide-react';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { supabase } from '@/lib/supabase-browser';
 
 export const CalendarView = ({ onBack }: { onBack: () => void; onAddEvent?: () => void }) => {
   const today = new Date();
