@@ -3,21 +3,30 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { CheckCircle2, KeyRound, Loader2 } from 'lucide-react';
+import { createInviteRecoverySupabaseClient } from '@/lib/supabase-invite-recovery-client';
 
 const MIN_LENGTH = 8;
 
+/** Indica si la URL parece un retorno de Auth (hash implícito o código PKCE). */
+function urlLooksLikeAuthRedirect(): boolean {
+  if (typeof window === 'undefined') return false;
+  const { hash, search } = window.location;
+  const h = hash.toLowerCase();
+  return (
+    h.includes('access_token') ||
+    h.includes('type=invite') ||
+    h.includes('type%3dinvite') ||
+    h.includes('type=recovery') ||
+    h.includes('type%3drecovery') ||
+    h.includes('error=') ||
+    search.includes('code=')
+  );
+}
+
 export default function SetPasswordPage() {
   const router = useRouter();
-  const supabase = useMemo(
-    () =>
-      createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      ),
-    []
-  );
+  const supabase = useMemo(() => createInviteRecoverySupabaseClient(), []);
 
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -30,27 +39,60 @@ export default function SetPasswordPage() {
   useEffect(() => {
     let cancelled = false;
 
-    const syncSession = async () => {
+    const applySession = (session: import('@supabase/supabase-js').Session | null) => {
+      if (cancelled) return;
+      setHasSession(!!session);
+      setChecking(false);
+    };
+
+    const readSession = async () => {
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      if (!cancelled) {
-        setHasSession(!!session);
-        setChecking(false);
-      }
+      return session;
     };
 
-    void syncSession();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!cancelled) setHasSession(!!session);
+    const { data: subWrap } = supabase.auth.onAuthStateChange((event, session) => {
+      if (cancelled) return;
+      if (
+        session &&
+        (event === 'INITIAL_SESSION' ||
+          event === 'SIGNED_IN' ||
+          event === 'PASSWORD_RECOVERY' ||
+          event === 'TOKEN_REFRESHED' ||
+          event === 'USER_UPDATED')
+      ) {
+        applySession(session);
+      }
     });
+
+    void (async () => {
+      let session = await readSession();
+      if (session) {
+        applySession(session);
+        return;
+      }
+
+      const expectRedirect = urlLooksLikeAuthRedirect();
+      if (expectRedirect) {
+        const delays = [0, 80, 200, 450, 900, 1600, 2600];
+        for (const ms of delays) {
+          if (cancelled) return;
+          if (ms > 0) await new Promise((r) => setTimeout(r, ms));
+          session = await readSession();
+          if (session) {
+            applySession(session);
+            return;
+          }
+        }
+      }
+
+      applySession(await readSession());
+    })();
 
     return () => {
       cancelled = true;
-      subscription.unsubscribe();
+      subWrap.subscription.unsubscribe();
     };
   }, [supabase]);
 
@@ -95,12 +137,18 @@ export default function SetPasswordPage() {
         </p>
 
         {checking ? (
-          <div className="mt-10 flex justify-center">
+          <div className="mt-10 flex flex-col items-center gap-2">
             <Loader2 className="h-9 w-9 animate-spin text-[#1b3a4a]/35" />
+            <p className="text-center text-[10px] text-slate-400">
+              Comprobando enlace de invitación…
+            </p>
           </div>
         ) : !hasSession ? (
           <div className="mt-8 rounded-xl border border-amber-100 bg-amber-50/80 px-4 py-3 text-center text-sm text-amber-900">
             <p>No hay una sesión de invitación activa. El enlace puede haber expirado o ya se usó.</p>
+            <p className="mt-2 text-[11px] text-amber-800/90">
+              Abre el enlace en este mismo navegador y evita previsualizar el correo dentro de apps que no pasan el fragmento (#) de la URL.
+            </p>
             <Link href="/login" className="mt-3 inline-block text-sm font-bold text-[#1b3a4a] underline">
               Ir al inicio de sesión
             </Link>
