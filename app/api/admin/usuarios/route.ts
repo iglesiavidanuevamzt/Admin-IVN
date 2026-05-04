@@ -78,11 +78,23 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: 'userId o rol inválido.' }, { status: 400 });
   }
 
+  const { data: authUser, error: authLookupErr } = await admin.auth.admin.getUserById(userId);
+  if (authLookupErr || !authUser.user) {
+    return NextResponse.json({ error: 'Usuario no encontrado en Auth.' }, { status: 404 });
+  }
+  const email = authUser.user.email?.trim();
+  if (!email) {
+    return NextResponse.json(
+      { error: 'Este usuario no tiene correo en Auth; no se puede crear la fila en perfiles.' },
+      { status: 400 }
+    );
+  }
+
   const { data: existing } = await admin.from('perfiles').select('user_id').eq('user_id', userId).maybeSingle();
 
   const { error } = existing
-    ? await admin.from('perfiles').update({ rol }).eq('user_id', userId)
-    : await admin.from('perfiles').insert({ user_id: userId, rol });
+    ? await admin.from('perfiles').update({ rol, email }).eq('user_id', userId)
+    : await admin.from('perfiles').insert({ user_id: userId, rol, email });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
