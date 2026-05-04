@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  const redirectTo = siteUrl ? `${siteUrl}/login` : undefined;
+  const redirectTo = siteUrl ? `${siteUrl}/set-password` : undefined;
   const { error } = await admin.auth.admin.inviteUserByEmail(inviteEmail, {
     redirectTo,
   });
