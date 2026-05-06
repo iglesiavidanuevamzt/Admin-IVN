@@ -5,6 +5,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Loader2, Lock } from 'lucide-react';
 import { supabase } from '@/lib/supabase-browser';
+import {
+  isUserVerifyingPlatformAuthenticatorUsable,
+  isWebAuthnBrowserSupported,
+} from '@/lib/webauthn-capabilities';
 
 function credentialToJSON(credential: PublicKeyCredential): unknown {
   const anyCredential = credential as PublicKeyCredential & { toJSON?: () => unknown };
@@ -43,58 +47,83 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [passkeySupported, setPasskeySupported] = useState(false);
+  const [mfaHint, setMfaHint] = useState<string>(
+    'Tras validar tu correo y contraseña podrás entrar al panel. El segundo factor es opcional en este flujo.'
+  );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const supported =
-      typeof window !== 'undefined' &&
-      window.isSecureContext &&
-      typeof window.PublicKeyCredential !== 'undefined';
-    setPasskeySupported(supported);
+    let cancelled = false;
+    (async () => {
+      const browser = isWebAuthnBrowserSupported();
+      const platform = browser ? await isUserVerifyingPlatformAuthenticatorUsable() : false;
+      if (cancelled) return;
+      if (!browser) {
+        setMfaHint(
+          'En este entorno no hay WebAuthn (HTTPS + navegador compatible). Entra solo con correo y contraseña confirmados.'
+        );
+      } else if (!platform) {
+        setMfaHint(
+          'No se detectó Windows Hello / huella / Face ID en este equipo: no pediremos WebAuthn al entrar. Solo correo y contraseña.'
+        );
+      } else {
+        setMfaHint(
+          'Si tienes MFA WebAuthn activado, puede pedirse Hello, huella o PIN del sistema; si cancelas o falla, igual entras al panel. TOTP podrá añadirse más adelante.'
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const completeMfaWebAuthnIfNeeded = async () => {
-    if (!passkeySupported) return;
+  /**
+   * Refuerzo MFA opcional: solo en equipos con autenticador de plataforma; nunca bloquea el acceso al panel.
+   */
+  const tryCompleteMfaWebAuthnIfPossible = async () => {
+    if (!isWebAuthnBrowserSupported()) return;
+    const platformOk = await isUserVerifyingPlatformAuthenticatorUsable();
+    if (!platformOk) return;
 
-    const { data: factorsData, error: factorsErr } = await supabase.auth.mfa.listFactors();
-    if (factorsErr) throw factorsErr;
+    try {
+      const { data: factorsData, error: factorsErr } = await supabase.auth.mfa.listFactors();
+      if (factorsErr) return;
 
-    const webauthnFactor = factorsData.all.find(
-      (factor) => factor.factor_type === 'webauthn' && factor.status === 'verified'
-    );
-    if (!webauthnFactor) return;
+      const webauthnFactor = factorsData.all.find(
+        (factor) => factor.factor_type === 'webauthn' && factor.status === 'verified'
+      );
+      if (!webauthnFactor) return;
 
-    const rpId = window.location.hostname;
-    const rpOrigins = [window.location.origin];
+      const rpId = window.location.hostname;
+      const rpOrigins = [window.location.origin];
 
-    const { data: challengeData, error: challengeErr } = await supabase.auth.mfa.challenge({
-      factorId: webauthnFactor.id,
-      webauthn: { rpId, rpOrigins },
-    });
-    if (challengeErr) throw challengeErr;
-    if (!challengeData || !('webauthn' in challengeData) || challengeData.webauthn.type !== 'request') {
-      throw new Error('No se obtuvo challenge válido de WebAuthn para MFA.');
+      const { data: challengeData, error: challengeErr } = await supabase.auth.mfa.challenge({
+        factorId: webauthnFactor.id,
+        webauthn: { rpId, rpOrigins },
+      });
+      if (challengeErr || !challengeData || !('webauthn' in challengeData) || challengeData.webauthn.type !== 'request') {
+        return;
+      }
+
+      const assertion = await navigator.credentials.get({
+        publicKey: challengeData.webauthn.credential_options.publicKey as PublicKeyCredentialRequestOptions,
+      });
+      if (!assertion || !(assertion instanceof PublicKeyCredential)) return;
+
+      const { error: verifyErr } = await supabase.auth.mfa.verify({
+        factorId: webauthnFactor.id,
+        challengeId: challengeData.id,
+        webauthn: {
+          type: 'request',
+          rpId,
+          rpOrigins,
+          credential_response: credentialToJSON(assertion) as never,
+        },
+      });
+      if (verifyErr) return;
+    } catch {
+      /* Usuario canceló, hardware ausente o MFA deshabilitado en proyecto: el acceso sigue con contraseña. */
     }
-
-    const assertion = await navigator.credentials.get({
-      publicKey: challengeData.webauthn.credential_options.publicKey as PublicKeyCredentialRequestOptions,
-    });
-    if (!assertion || !(assertion instanceof PublicKeyCredential)) {
-      throw new Error('No se recibió credencial WebAuthn para validar MFA.');
-    }
-
-    const { error: verifyErr } = await supabase.auth.mfa.verify({
-      factorId: webauthnFactor.id,
-      challengeId: challengeData.id,
-      webauthn: {
-        type: 'request',
-        rpId,
-        rpOrigins,
-        credential_response: credentialToJSON(assertion) as never,
-      },
-    });
-    if (verifyErr) throw verifyErr;
   };
 
   const signInWithPassword = async (e: React.FormEvent) => {
@@ -104,7 +133,7 @@ export default function LoginPage() {
     try {
       const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
       if (err) throw err;
-      await completeMfaWebAuthnIfNeeded();
+      await tryCompleteMfaWebAuthnIfPossible();
       router.refresh();
       router.push('/');
     } catch (err: unknown) {
@@ -172,11 +201,7 @@ export default function LoginPage() {
           </Link>
         </p>
 
-        <p className={`mt-4 text-center text-[10px] leading-relaxed ${passkeySupported ? 'text-slate-400' : 'text-amber-600'}`}>
-          {passkeySupported
-            ? 'Si tu usuario tiene Passkey MFA registrada, después de validar correo y contraseña se pedirá huella/Face ID/PIN.'
-            : 'WebAuthn MFA requiere navegador compatible y contexto seguro (HTTPS).'}
-        </p>
+        <p className="mt-4 text-center text-[10px] leading-relaxed text-slate-500">{mfaHint}</p>
       </div>
     </div>
   );

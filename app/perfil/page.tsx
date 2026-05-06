@@ -4,6 +4,10 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Fingerprint, Loader2, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase-browser';
+import {
+  isUserVerifyingPlatformAuthenticatorUsable,
+  isWebAuthnBrowserSupported,
+} from '@/lib/webauthn-capabilities';
 
 type WebauthnFactorRow = { id: string; friendly_name?: string | null };
 
@@ -25,14 +29,20 @@ export default function PerfilPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteLoading, setInviteLoading] = useState(false);
   const [canInvite, setCanInvite] = useState<boolean | null>(null);
-  const [passkeySupported, setPasskeySupported] = useState(false);
+  /** null = aún comprobando si hay autenticador de plataforma (Hello, huella, etc.) */
+  const [canOfferWebAuthnMfa, setCanOfferWebAuthnMfa] = useState<boolean | null>(null);
+  const [browserWebAuthnOk, setBrowserWebAuthnOk] = useState(false);
 
   useEffect(() => {
-    const supported =
-      typeof window !== 'undefined' &&
-      window.isSecureContext &&
-      typeof window.PublicKeyCredential !== 'undefined';
-    setPasskeySupported(supported);
+    setBrowserWebAuthnOk(isWebAuthnBrowserSupported());
+    let cancelled = false;
+    (async () => {
+      const usable = await isUserVerifyingPlatformAuthenticatorUsable();
+      if (!cancelled) setCanOfferWebAuthnMfa(usable);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const load = async () => {
@@ -74,8 +84,8 @@ export default function PerfilPage() {
     setMessage(null);
     setRegistering(true);
     try {
-      if (!passkeySupported) {
-        throw new Error('Este navegador no soporta WebAuthn o no está en HTTPS.');
+      if (canOfferWebAuthnMfa !== true) {
+        throw new Error('Este equipo no tiene un autenticador compatible listo para WebAuthn MFA.');
       }
       const rpId = window.location.hostname;
       const rpOrigins = [window.location.origin];
@@ -118,7 +128,12 @@ export default function PerfilPage() {
       setMessage('Dispositivo registrado correctamente con MFA WebAuthn.');
       await load();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'No se pudo registrar WebAuthn MFA.');
+      const raw = err instanceof Error ? err.message : 'No se pudo registrar WebAuthn MFA.';
+      const hint =
+        /mfa enroll is disabled|webauthn/i.test(raw)
+          ? ' En Supabase: Authentication → Multi-factor → habilita WebAuthn si quieres usar este método.'
+          : '';
+      setError(`${raw}${hint}`);
     } finally {
       setRegistering(false);
     }
@@ -179,31 +194,65 @@ export default function PerfilPage() {
           <h1 className="font-serif text-xl font-bold text-[#1b3a4a]">Perfil del administrador</h1>
           <p className="mt-1 text-sm text-slate-600">{userEmail}</p>
           <p className="mt-2 text-xs text-slate-500">
-            Vincula tu dispositivo con passkey (Windows Hello, Face ID, huella, etc.).
+            El segundo factor con huella, cara o PIN del sistema (WebAuthn) es opcional. Puedes usar solo correo y
+            contraseña. Más adelante podrás añadir un código de app (TOTP) si lo habilitamos en el proyecto.
           </p>
 
           {message && <p className="mt-4 rounded-xl bg-green-50 px-3 py-2 text-sm text-green-800">{message}</p>}
           {error && <p className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
           <section className="mt-8 border-t border-slate-100 pt-8">
-            <h2 className="text-[11px] font-black uppercase tracking-widest text-slate-500">WebAuthn MFA</h2>
-            <button
-              type="button"
-              onClick={registerDevice}
-              disabled={registering || !passkeySupported}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#1b3a4a] py-3.5 text-xs font-black uppercase tracking-widest text-white disabled:opacity-50"
-            >
-              {registering ? <Loader2 className="h-5 w-5 animate-spin" /> : <Fingerprint className="h-5 w-5" />}
-              Registrar mi dispositivo (MFA)
-            </button>
-            {passkeySupported ? (
-              <p className="mt-2 text-[11px] text-slate-400">
-                Debes haber iniciado sesión con correo y contraseña al menos una vez en este navegador.
-              </p>
-            ) : (
-              <p className="mt-2 text-[11px] text-amber-600">
-                Este navegador/dispositivo no soporta WebAuthn o no está en HTTPS.
-              </p>
+            <h2 className="text-[11px] font-black uppercase tracking-widest text-slate-500">WebAuthn MFA (opcional)</h2>
+
+            {canOfferWebAuthnMfa === null && (
+              <p className="mt-4 text-sm text-slate-500">Comprobando si este equipo puede usar Windows Hello, huella o Face ID…</p>
+            )}
+
+            {canOfferWebAuthnMfa === true && (
+              <>
+                <button
+                  type="button"
+                  onClick={registerDevice}
+                  disabled={registering}
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#1b3a4a] py-3.5 text-xs font-black uppercase tracking-widest text-white disabled:opacity-50"
+                >
+                  {registering ? <Loader2 className="h-5 w-5 animate-spin" /> : <Fingerprint className="h-5 w-5" />}
+                  Registrar mi dispositivo (MFA)
+                </button>
+                <Link
+                  href="/"
+                  className="mt-3 flex w-full items-center justify-center rounded-xl border border-slate-200 bg-white py-3 text-xs font-bold uppercase tracking-widest text-[#1b3a4a] hover:bg-slate-50"
+                >
+                  Saltar por ahora
+                </Link>
+                <p className="mt-2 text-[11px] text-slate-400">
+                  Solo se muestra esta opción cuando el navegador detecta un autenticador de plataforma disponible.
+                </p>
+              </>
+            )}
+
+            {canOfferWebAuthnMfa === false && (
+              <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 px-3 py-3 text-sm text-slate-600">
+                <p>
+                  En este equipo no se detectó un autenticador compatible (p. ej. Windows Hello o lector de huellas).
+                  Puedes seguir usando el panel solo con correo y contraseña.
+                </p>
+                {!browserWebAuthnOk && (
+                  <p className="mt-2 text-xs text-amber-700">
+                    WebAuthn requiere HTTPS y un navegador actual. Si estás en HTTP local, prueba con la URL segura del
+                    proyecto.
+                  </p>
+                )}
+                <p className="mt-2 text-xs text-slate-500">
+                  Plan B: más adelante podremos activar códigos de app (TOTP); no es obligatorio para entrar ahora.
+                </p>
+                <Link
+                  href="/"
+                  className="mt-3 inline-flex text-xs font-bold uppercase tracking-widest text-[#1b3a4a] underline underline-offset-2"
+                >
+                  Ir al panel
+                </Link>
+              </div>
             )}
 
             {factors.length > 0 && (
@@ -232,7 +281,7 @@ export default function PerfilPage() {
             <section className="mt-8 border-t border-slate-100 pt-8">
               <h2 className="text-[11px] font-black uppercase tracking-widest text-slate-500">Invitar usuario</h2>
               <p className="mt-1 text-xs text-slate-500">
-                Super-admin o correos en INVITER_EMAILS. El registro público sigue desactivado en Supabase.
+                Super-admin o correos en INVITER_EMAILS.
               </p>
               <form onSubmit={sendInvite} className="mt-4 flex flex-col gap-3 sm:flex-row">
                 <input
