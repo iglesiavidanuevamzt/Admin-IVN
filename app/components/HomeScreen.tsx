@@ -4,21 +4,35 @@ import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import type { Screen } from '../../types';
-import type { HomeCard } from '@/lib/roles';
 
 type HomeScreenProps = {
   onNavigate: (s: Screen) => void;
-  cards: HomeCard[];
+  roles: string[];
   profileLoading: boolean;
   showUserManagement: boolean;
 };
 
 export const HomeScreen = ({
   onNavigate,
-  cards,
+  roles,
   profileLoading,
   showUserManagement,
 }: HomeScreenProps) => {
+  const isSuperAdmin = roles.includes('super-admin');
+  const cards = [
+    roles.includes('devocional') || isSuperAdmin
+      ? { id: 'devocional' as Screen, title: 'Devocionales', iconPath: '/icons/logo_devocionales.png' }
+      : null,
+    roles.includes('anuncios') || isSuperAdmin
+      ? { id: 'avisos' as Screen, title: 'Anuncios', iconPath: '/icons/logo_avisos.png' }
+      : null,
+    roles.includes('musica') || isSuperAdmin
+      ? { id: 'alabanzas' as Screen, title: 'Alabanzas', iconPath: '/icons/alabanza.png' }
+      : null,
+    roles.includes('agenda') || isSuperAdmin
+      ? { id: 'agenda-view' as Screen, title: 'Calendario', iconPath: '/icons/logo_agenda.png' }
+      : null,
+  ].filter(Boolean) as { id: Screen; title: string; iconPath: string }[];
   return (
     <div className="fixed inset-0 bg-gradient-to-b from-[#f5eae1] via-[#e5dfda] to-[#122e43] flex flex-col items-center justify-center p-6 overflow-hidden">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
@@ -43,7 +57,7 @@ export const HomeScreen = ({
 
         {profileLoading ? (
           <div className="flex w-full justify-center py-12 text-sm text-[#1b3a4a]/50">Cargando permisos…</div>
-        ) : cards.length === 0 ? (
+        ) : roles.length === 0 || cards.length === 0 ? (
           <p className="px-2 text-center text-sm text-[#1b3a4a]/70">
             No tienes módulos asignados. Contacta al administrador para que te asigne un rol en la tabla de perfiles.
           </p>

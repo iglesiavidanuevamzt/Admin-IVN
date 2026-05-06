@@ -3,7 +3,7 @@
 import { createBrowserClient } from '@supabase/ssr';
 
 /**
- * Cliente browser con PKCE y Passkeys (WebAuthn) experimental.
+ * Cliente browser con PKCE para sesión/cookies.
  * Solo importar desde componentes cliente.
  */
 export const supabase = createBrowserClient(
@@ -12,7 +12,6 @@ export const supabase = createBrowserClient(
   {
     auth: {
       flowType: 'pkce',
-      experimental: { passkey: true },
     },
   }
 );

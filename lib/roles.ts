@@ -25,19 +25,34 @@ const ROLE_SCREENS: Record<string, ReadonlySet<Screen>> = {
   encargado: new Set(['home']),
 };
 
-export function screensForRole(rol: string | null | undefined): ReadonlySet<Screen> {
-  if (!rol) return new Set<Screen>(['home']);
-  const set = ROLE_SCREENS[rol.trim()];
-  if (!set) return new Set<Screen>(['home']);
-  return set;
+export function parseRoles(input: string | string[] | null | undefined): string[] {
+  if (Array.isArray(input)) return input.map((r) => r.trim()).filter(Boolean);
+  if (!input) return [];
+  return input
+    .split(',')
+    .map((r) => r.trim())
+    .filter(Boolean);
 }
 
-export function canAccessScreen(rol: string | null | undefined, screen: Screen): boolean {
-  return screensForRole(rol).has(screen);
+export function screensForRoles(rolesInput: string | string[] | null | undefined): ReadonlySet<Screen> {
+  const roles = parseRoles(rolesInput);
+  if (roles.length === 0) return new Set<Screen>(['home']);
+
+  const merged = new Set<Screen>(['home']);
+  for (const role of roles) {
+    const set = ROLE_SCREENS[role];
+    if (!set) continue;
+    for (const screen of set) merged.add(screen);
+  }
+  return merged;
 }
 
-export function isSuperAdmin(rol: string | null | undefined): boolean {
-  return rol?.trim() === SUPER_ADMIN_ROLE;
+export function canAccessScreen(rolesInput: string | string[] | null | undefined, screen: Screen): boolean {
+  return screensForRoles(rolesInput).has(screen);
+}
+
+export function isSuperAdmin(rolesInput: string | string[] | null | undefined): boolean {
+  return parseRoles(rolesInput).includes(SUPER_ADMIN_ROLE);
 }
 
 /** Roles que puede asignar un super-admin en /admin/usuarios */
@@ -61,7 +76,7 @@ const HOME_CARDS: HomeCard[] = [
   { id: 'agenda-view', title: 'Calendario', iconPath: '/icons/logo_agenda.png' },
 ];
 
-export function homeCardsForRole(rol: string | null | undefined): HomeCard[] {
-  const allowed = screensForRole(rol);
+export function homeCardsForRoles(rolesInput: string | string[] | null | undefined): HomeCard[] {
+  const allowed = screensForRoles(rolesInput);
   return HOME_CARDS.filter((c) => allowed.has(c.id));
 }

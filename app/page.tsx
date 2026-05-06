@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navbar } from './components/Navbar';
 import { HomeScreen } from './components/HomeScreen';
 import { DevocionalForm } from './components/DevocionalForm';
@@ -10,13 +10,13 @@ import { PraisesForm } from './components/PraisesForm';
 import { CalendarView } from './components/CalendarView';
 import { FormState, Screen } from '../types';
 import { supabase } from '@/lib/supabase-browser';
-import { canAccessScreen, homeCardsForRole, isSuperAdmin } from '@/lib/roles';
+import { canAccessScreen, isSuperAdmin, parseRoles } from '@/lib/roles';
 
 const getFechaHoy = () => new Date().toISOString().split('T')[0];
 
 export default function AdminApp() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
-  const [appRol, setAppRol] = useState<string | null>(null);
+  const [appRoles, setAppRoles] = useState<string[]>([]);
   const [profileLoading, setProfileLoading] = useState(true);
   
   const [form, setForm] = useState<FormState>({
@@ -54,11 +54,11 @@ export default function AdminApp() {
           data: { user },
         } = await supabase.auth.getUser();
         if (!user || cancelled) {
-          if (!cancelled) setAppRol(null);
+          if (!cancelled) setAppRoles([]);
           return;
         }
         const { data } = await supabase.from('perfiles').select('rol').eq('user_id', user.id).maybeSingle();
-        if (!cancelled) setAppRol(typeof data?.rol === 'string' ? data.rol.trim() : null);
+        if (!cancelled) setAppRoles(parseRoles(typeof data?.rol === 'string' ? data.rol : null));
       } finally {
         if (!cancelled) setProfileLoading(false);
       }
@@ -70,16 +70,15 @@ export default function AdminApp() {
 
   useEffect(() => {
     if (profileLoading) return;
-    if (!canAccessScreen(appRol, currentScreen)) {
+    if (!canAccessScreen(appRoles, currentScreen)) {
       setCurrentScreen('home');
     }
-  }, [appRol, profileLoading, currentScreen]);
+  }, [appRoles, profileLoading, currentScreen]);
 
-  const homeCards = useMemo(() => homeCardsForRole(appRol), [appRol]);
-  const showUserManagement = isSuperAdmin(appRol);
+  const showUserManagement = isSuperAdmin(appRoles);
 
   const handleNavigate = (screen: Screen) => {
-    if (!canAccessScreen(appRol, screen)) return;
+    if (!canAccessScreen(appRoles, screen)) return;
     if (screen === 'avisos') {
       setForm(prev => ({
         ...prev, id: null, titulo: '', mensaje: '',
@@ -120,7 +119,7 @@ export default function AdminApp() {
         {currentScreen === 'home' && (
           <HomeScreen
             onNavigate={handleNavigate}
-            cards={homeCards}
+            roles={appRoles}
             profileLoading={profileLoading}
             showUserManagement={showUserManagement}
           />

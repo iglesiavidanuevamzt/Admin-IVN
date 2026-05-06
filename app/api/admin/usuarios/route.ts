@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { ASSIGNABLE_ROLE_VALUES, isSuperAdmin } from '@/lib/roles';
+import { ASSIGNABLE_ROLE_VALUES, isSuperAdmin, parseRoles } from '@/lib/roles';
 import { getSessionAndRol } from '@/lib/admin/session-profile';
 
 function adminClient() {
@@ -46,6 +46,7 @@ export async function GET() {
     userId: u.id,
     email: u.email ?? '',
     rol: rolByUser.get(u.id) ?? null,
+    roles: parseRoles(rolByUser.get(u.id) ?? null),
   }));
 
   return NextResponse.json({ usuarios: list });
@@ -65,18 +66,24 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: 'Servidor sin clave de servicio.' }, { status: 500 });
   }
 
-  let body: { userId?: string; rol?: string };
+  let body: { userId?: string; rol?: string; roles?: string[] };
   try {
-    body = (await request.json()) as { userId?: string; rol?: string };
+    body = (await request.json()) as { userId?: string; rol?: string; roles?: string[] };
   } catch {
     return NextResponse.json({ error: 'JSON inválido.' }, { status: 400 });
   }
 
   const userId = typeof body.userId === 'string' ? body.userId.trim() : '';
-  const rol = typeof body.rol === 'string' ? body.rol.trim() : '';
-  if (!userId || !rol || !ASSIGNABLE_ROLE_VALUES.has(rol)) {
-    return NextResponse.json({ error: 'userId o rol inválido.' }, { status: 400 });
+  const roles = Array.isArray(body.roles)
+    ? body.roles.map((r) => r.trim()).filter(Boolean)
+    : typeof body.rol === 'string'
+      ? [body.rol.trim()].filter(Boolean)
+      : [];
+  if (!userId || roles.length === 0 || roles.some((r) => !ASSIGNABLE_ROLE_VALUES.has(r))) {
+    return NextResponse.json({ error: 'userId o roles inválidos.' }, { status: 400 });
   }
+  const rolesUnique = Array.from(new Set(roles));
+  const rolCsv = rolesUnique.join(',');
 
   const { data: authUser, error: authLookupErr } = await admin.auth.admin.getUserById(userId);
   if (authLookupErr || !authUser.user) {
@@ -92,13 +99,67 @@ export async function PATCH(request: Request) {
 
   const { data: existing } = await admin.from('perfiles').select('user_id').eq('user_id', userId).maybeSingle();
 
-  const { error } = existing
-    ? await admin.from('perfiles').update({ rol, email }).eq('user_id', userId)
-    : await admin.from('perfiles').insert({ user_id: userId, rol, email });
+  const runUpdate = async (payload: { rol: string[] | string; email: string }) => {
+    const { data, error, count } = await admin
+      .from('perfiles')
+      .update(payload)
+      .eq('user_id', userId)
+      .select('user_id');
+    console.log('[admin/usuarios PATCH] update result', {
+      userId,
+      payloadRolType: Array.isArray(payload.rol) ? 'array' : 'string',
+      count,
+      rows: data?.length ?? 0,
+      error: error?.message ?? null,
+    });
+    return { data, error, count };
+  };
+
+  const runInsert = async (payload: { rol: string[] | string; email: string }) => {
+    const { data, error, count } = await admin
+      .from('perfiles')
+      .insert({ user_id: userId, ...payload })
+      .select('user_id');
+    console.log('[admin/usuarios PATCH] insert result', {
+      userId,
+      payloadRolType: Array.isArray(payload.rol) ? 'array' : 'string',
+      count,
+      rows: data?.length ?? 0,
+      error: error?.message ?? null,
+    });
+    return { data, error, count };
+  };
+
+  let error: { message: string } | null = null;
+  if (existing) {
+    // 1) Intentar como text[] (si rol migró a arreglo)
+    let updated = await runUpdate({ rol: rolesUnique, email });
+    // 2) Fallback a CSV para esquema legacy (rol text)
+    if (updated.error) {
+      updated = await runUpdate({ rol: rolCsv, email });
+    }
+    if (!updated.error && (updated.count ?? updated.data?.length ?? 0) === 0) {
+      error = { message: 'No se actualizó ninguna fila. Verifica que la clave sea user_id.' };
+    } else {
+      error = updated.error;
+    }
+  } else {
+    // 1) Intentar como text[] (si rol migró a arreglo)
+    let inserted = await runInsert({ rol: rolesUnique, email });
+    // 2) Fallback a CSV para esquema legacy (rol text)
+    if (inserted.error) {
+      inserted = await runInsert({ rol: rolCsv, email });
+    }
+    if (!inserted.error && (inserted.count ?? inserted.data?.length ?? 0) === 0) {
+      error = { message: 'No se insertó ninguna fila en perfiles.' };
+    } else {
+      error = inserted.error;
+    }
+  }
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, userId, roles: rolesUnique });
 }

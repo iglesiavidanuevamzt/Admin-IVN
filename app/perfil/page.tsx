@@ -2,16 +2,22 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { ArrowLeft, Fingerprint, Loader2, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase-browser';
 
-type PasskeyRow = { id: string; friendly_name?: string | null };
+type WebauthnFactorRow = { id: string; friendly_name?: string | null };
+
+function credentialToJSON(credential: PublicKeyCredential): unknown {
+  const anyCredential = credential as PublicKeyCredential & { toJSON?: () => unknown };
+  if (typeof anyCredential.toJSON === 'function') {
+    return anyCredential.toJSON();
+  }
+  throw new Error('El navegador no soporta serialización WebAuthn requerida.');
+}
 
 export default function PerfilPage() {
-  const router = useRouter();
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [passkeys, setPasskeys] = useState<PasskeyRow[]>([]);
+  const [factors, setFactors] = useState<WebauthnFactorRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [registering, setRegistering] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -19,6 +25,15 @@ export default function PerfilPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteLoading, setInviteLoading] = useState(false);
   const [canInvite, setCanInvite] = useState<boolean | null>(null);
+  const [passkeySupported, setPasskeySupported] = useState(false);
+
+  useEffect(() => {
+    const supported =
+      typeof window !== 'undefined' &&
+      window.isSecureContext &&
+      typeof window.PublicKeyCredential !== 'undefined';
+    setPasskeySupported(supported);
+  }, []);
 
   const load = async () => {
     setLoading(true);
@@ -36,18 +51,14 @@ export default function PerfilPage() {
         setCanInvite(false);
       }
 
-      const passkeyApi = (supabase.auth as unknown as { passkey?: { list: () => Promise<{ data: unknown; error: Error | null }> } }).passkey;
-      if (passkeyApi?.list) {
-        const { data, error: listErr } = await passkeyApi.list();
-        if (!listErr && data && typeof data === 'object' && 'passkeys' in data) {
-          setPasskeys((data as { passkeys: PasskeyRow[] }).passkeys ?? []);
-        } else if (Array.isArray(data)) {
-          setPasskeys(data as PasskeyRow[]);
-        } else {
-          setPasskeys([]);
-        }
+      const { data: factorData, error: factorErr } = await supabase.auth.mfa.listFactors();
+      if (!factorErr && factorData?.all) {
+        const webauthn = factorData.all
+          .filter((f) => f.factor_type === 'webauthn')
+          .map((f) => ({ id: f.id, friendly_name: f.friendly_name ?? null }));
+        setFactors(webauthn);
       } else {
-        setPasskeys([]);
+        setFactors([]);
       }
     } finally {
       setLoading(false);
@@ -63,20 +74,51 @@ export default function PerfilPage() {
     setMessage(null);
     setRegistering(true);
     try {
-      const { data, error: err } = await supabase.auth.registerPasskey();
-      if (err) throw err;
-      const friendly = `Dispositivo – ${new Date().toLocaleString('es-MX')}`;
-      if (data?.id) {
-        const { error: renameErr } = await supabase.auth.passkey.update({
-          passkeyId: data.id,
-          friendlyName: friendly,
-        });
-        if (renameErr) throw renameErr;
+      if (!passkeySupported) {
+        throw new Error('Este navegador no soporta WebAuthn o no está en HTTPS.');
       }
-      setMessage('Dispositivo registrado correctamente.');
+      const rpId = window.location.hostname;
+      const rpOrigins = [window.location.origin];
+      const friendlyName = `Dispositivo – ${new Date().toLocaleString('es-MX')}`;
+
+      const { data: enrolled, error: enrollErr } = await supabase.auth.mfa.enroll({
+        factorType: 'webauthn',
+        friendlyName,
+      });
+      if (enrollErr) throw enrollErr;
+
+      const { data: challengeData, error: challengeErr } = await supabase.auth.mfa.challenge({
+        factorId: enrolled.id,
+        webauthn: { rpId, rpOrigins },
+      });
+      if (challengeErr) throw challengeErr;
+      if (!challengeData || !('webauthn' in challengeData) || challengeData.webauthn.type !== 'create') {
+        throw new Error('No se obtuvo challenge válido para registrar WebAuthn.');
+      }
+
+      const createdCredential = await navigator.credentials.create({
+        publicKey: challengeData.webauthn.credential_options.publicKey as PublicKeyCredentialCreationOptions,
+      });
+      if (!createdCredential || !(createdCredential instanceof PublicKeyCredential)) {
+        throw new Error('No se recibió credencial WebAuthn para completar el registro.');
+      }
+
+      const { error: verifyErr } = await supabase.auth.mfa.verify({
+        factorId: enrolled.id,
+        challengeId: challengeData.id,
+        webauthn: {
+          type: 'create',
+          rpId,
+          rpOrigins,
+          credential_response: credentialToJSON(createdCredential) as never,
+        },
+      });
+      if (verifyErr) throw verifyErr;
+
+      setMessage('Dispositivo registrado correctamente con MFA WebAuthn.');
       await load();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'No se pudo registrar el passkey.');
+      setError(err instanceof Error ? err.message : 'No se pudo registrar WebAuthn MFA.');
     } finally {
       setRegistering(false);
     }
@@ -85,15 +127,11 @@ export default function PerfilPage() {
   const deletePasskey = async (id: string) => {
     setError(null);
     try {
-      const passkeyApi = (supabase.auth as unknown as {
-        passkey?: { delete: (p: { passkeyId: string }) => Promise<{ error: Error | null }> };
-      }).passkey;
-      if (!passkeyApi?.delete) return;
-      const { error: err } = await passkeyApi.delete({ passkeyId: id });
+      const { error: err } = await supabase.auth.mfa.unenroll({ factorId: id });
       if (err) throw err;
       await load();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'No se pudo eliminar el passkey.');
+      setError(err instanceof Error ? err.message : 'No se pudo eliminar el factor WebAuthn.');
     }
   };
 
@@ -148,23 +186,29 @@ export default function PerfilPage() {
           {error && <p className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
           <section className="mt-8 border-t border-slate-100 pt-8">
-            <h2 className="text-[11px] font-black uppercase tracking-widest text-slate-500">Passkeys</h2>
+            <h2 className="text-[11px] font-black uppercase tracking-widest text-slate-500">WebAuthn MFA</h2>
             <button
               type="button"
               onClick={registerDevice}
-              disabled={registering}
+              disabled={registering || !passkeySupported}
               className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#1b3a4a] py-3.5 text-xs font-black uppercase tracking-widest text-white disabled:opacity-50"
             >
               {registering ? <Loader2 className="h-5 w-5 animate-spin" /> : <Fingerprint className="h-5 w-5" />}
-              Registrar mi dispositivo
+              Registrar mi dispositivo (MFA)
             </button>
-            <p className="mt-2 text-[11px] text-slate-400">
-              Debes haber iniciado sesión con correo y contraseña al menos una vez en este navegador.
-            </p>
+            {passkeySupported ? (
+              <p className="mt-2 text-[11px] text-slate-400">
+                Debes haber iniciado sesión con correo y contraseña al menos una vez en este navegador.
+              </p>
+            ) : (
+              <p className="mt-2 text-[11px] text-amber-600">
+                Este navegador/dispositivo no soporta WebAuthn o no está en HTTPS.
+              </p>
+            )}
 
-            {passkeys.length > 0 && (
+            {factors.length > 0 && (
               <ul className="mt-6 space-y-2">
-                {passkeys.map((pk) => (
+                {factors.map((pk) => (
                   <li
                     key={pk.id}
                     className="flex items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-sm"

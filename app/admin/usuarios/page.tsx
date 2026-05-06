@@ -3,9 +3,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Loader2, Mail } from 'lucide-react';
-import { ASSIGNABLE_ROLES, ASSIGNABLE_ROLE_VALUES } from '@/lib/roles';
+import { ASSIGNABLE_ROLES } from '@/lib/roles';
 
-type UsuarioRow = { userId: string; email: string; rol: string | null };
+type UsuarioRow = { userId: string; email: string; rol: string | null; roles?: string[] };
 
 export default function AdminUsuariosPage() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
@@ -66,18 +66,20 @@ export default function AdminUsuariosPage() {
     }
   };
 
-  const changeRol = async (userId: string, rol: string) => {
+  const changeRoles = async (userId: string, roles: string[]) => {
     setRowSaving(userId);
     setLoadError(null);
     try {
       const res = await fetch('/api/admin/usuarios', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, rol }),
+        body: JSON.stringify({ userId, roles }),
       });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body.error || 'No se pudo actualizar el rol.');
-      setUsuarios((prev) => prev.map((u) => (u.userId === userId ? { ...u, rol } : u)));
+      if (!res.ok) throw new Error(body.error || 'No se pudieron actualizar los roles.');
+      setUsuarios((prev) =>
+        prev.map((u) => (u.userId === userId ? { ...u, roles, rol: roles.join(',') } : u))
+      );
     } catch (e: unknown) {
       setLoadError(e instanceof Error ? e.message : 'Error al guardar.');
     } finally {
@@ -164,7 +166,7 @@ export default function AdminUsuariosPage() {
                   <thead className="border-b border-slate-100 bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-500">
                     <tr>
                       <th className="px-4 py-3">Correo</th>
-                      <th className="px-4 py-3">Rol</th>
+                      <th className="px-4 py-3">Roles</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -172,28 +174,30 @@ export default function AdminUsuariosPage() {
                       <tr key={u.userId} className="border-b border-slate-50 last:border-0">
                         <td className="max-w-[200px] truncate px-4 py-3 text-slate-800">{u.email || '—'}</td>
                         <td className="px-4 py-2">
-                          <select
-                            className="w-full max-w-[220px] rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs"
-                            value={u.rol ?? ''}
-                            disabled={rowSaving === u.userId}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              if (!v) return;
-                              void changeRol(u.userId, v);
-                            }}
-                          >
-                            <option value="" disabled>
-                              Sin perfil — asignar rol
-                            </option>
-                            {u.rol && !ASSIGNABLE_ROLE_VALUES.has(u.rol) && (
-                              <option value={u.rol}>{`Actual: ${u.rol}`}</option>
-                            )}
-                            {ASSIGNABLE_ROLES.map((r) => (
-                              <option key={r.value} value={r.value}>
-                                {r.label}
-                              </option>
-                            ))}
-                          </select>
+                          <div className="grid gap-2 py-1">
+                            {ASSIGNABLE_ROLES.map((r) => {
+                              const currentRoles = u.roles ?? (u.rol ? u.rol.split(',').map((x) => x.trim()).filter(Boolean) : []);
+                              const checked = currentRoles.includes(r.value);
+                              return (
+                                <label key={r.value} className="flex items-center gap-2 text-xs text-slate-700">
+                                  <input
+                                    type="checkbox"
+                                    className="h-4 w-4 rounded border-slate-300"
+                                    checked={checked}
+                                    disabled={rowSaving === u.userId}
+                                    onChange={(e) => {
+                                      const next = e.target.checked
+                                        ? [...currentRoles, r.value]
+                                        : currentRoles.filter((x) => x !== r.value);
+                                      if (next.length === 0) return;
+                                      void changeRoles(u.userId, next);
+                                    }}
+                                  />
+                                  {r.label}
+                                </label>
+                              );
+                            })}
+                          </div>
                         </td>
                       </tr>
                     ))}
