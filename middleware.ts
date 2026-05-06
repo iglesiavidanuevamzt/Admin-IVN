@@ -12,10 +12,10 @@ export const config = {
      * - _next/static, _next/image (archivos de Next.js)
      * - favicon.ico, icons, manifest.json, sw.js (archivos estáticos)
      * - Imágenes (svg, png, jpg, etc.)
-     * - login (página pública de acceso)
+     * - login, registro (acceso público)
      * - set-password (página pública para invitados)
      */
-    '/((?!_next/static|_next/image|favicon.ico|icons|manifest.json|sw.js|login|set-password|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|json)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|icons|manifest.json|sw.js|login|registro|set-password|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|json)$).*)',
     '/',
   ],
 };

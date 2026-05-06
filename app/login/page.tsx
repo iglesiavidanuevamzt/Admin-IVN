@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Loader2, Lock } from 'lucide-react';
 import { supabase } from '@/lib/supabase-browser';
@@ -121,7 +122,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-8 shadow-xl sm:p-10">
         <h1 className="text-center font-serif text-2xl font-bold text-[#1b3a4a]">Admin IVN</h1>
         <p className="mt-2 text-center text-xs text-slate-500">
-          Acceso restringido. El registro público está desactivado; solo cuentas invitadas.
+          Acceso al panel IVN. Las cuentas nuevas empiezan como visitante hasta que un administrador asigne módulos.
         </p>
 
         <form onSubmit={signInWithPassword} className="mt-8 space-y-4">
@@ -164,7 +165,14 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className={`mt-6 text-center text-[10px] leading-relaxed ${passkeySupported ? 'text-slate-400' : 'text-amber-600'}`}>
+        <p className="mt-6 text-center text-sm text-slate-600">
+          ¿Es tu primera vez?{' '}
+          <Link href="/registro" className="font-bold text-[#1b3a4a] underline underline-offset-2">
+            Regístrate aquí
+          </Link>
+        </p>
+
+        <p className={`mt-4 text-center text-[10px] leading-relaxed ${passkeySupported ? 'text-slate-400' : 'text-amber-600'}`}>
           {passkeySupported
             ? 'Si tu usuario tiene Passkey MFA registrada, después de validar correo y contraseña se pedirá huella/Face ID/PIN.'
             : 'WebAuthn MFA requiere navegador compatible y contexto seguro (HTTPS).'}

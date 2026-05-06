@@ -26,6 +26,8 @@ const ROLE_SCREENS: Record<string, ReadonlySet<Screen>> = {
   agenda: new Set(['home', 'agenda-view']),
   calendario: new Set(['home', 'agenda-view']),
   encargado: new Set(['home']),
+  /** Cuenta recién registrada: solo inicio hasta que un admin asigne roles. */
+  visitante: new Set(['home']),
 };
 
 function normalizeRole(role: string): string {

@@ -20,6 +20,10 @@ export const HomeScreen = ({
 }: HomeScreenProps) => {
   const hasRole = (...values: string[]) => values.some((v) => roles.includes(v));
   const isSuperAdmin = roles.includes('super-admin');
+  const pendingVisitante =
+    roles.includes('visitante') &&
+    !isSuperAdmin &&
+    !hasRole('musica', 'devocional', 'devocionales', 'anuncios', 'avisos', 'agenda', 'calendario', 'encargado');
   const cards = [
     hasRole('devocional', 'devocionales') || isSuperAdmin
       ? { id: 'devocional' as Screen, title: 'Devocionales', iconPath: '/icons/logo_devocionales.png' }
@@ -58,6 +62,14 @@ export const HomeScreen = ({
 
         {profileLoading ? (
           <div className="flex w-full justify-center py-12 text-sm text-[#1b3a4a]/50">Cargando permisos…</div>
+        ) : pendingVisitante ? (
+          <div className="px-2 text-center">
+            <p className="text-sm font-semibold text-[#1b3a4a]">Cuenta en revisión</p>
+            <p className="mt-3 text-sm leading-relaxed text-[#1b3a4a]/75">
+              Tu registro fue exitoso. Un administrador asignará pronto los módulos que necesitas. Si es urgente,
+              escribe al equipo de IVN.
+            </p>
+          </div>
         ) : roles.length === 0 || cards.length === 0 ? (
           <p className="px-2 text-center text-sm text-[#1b3a4a]/70">
             No tienes módulos asignados. Contacta al administrador para que te asigne un rol en la tabla de perfiles.

@@ -57,7 +57,14 @@ export default function AdminApp() {
           if (!cancelled) setAppRoles([]);
           return;
         }
-        const { data: perfil } = await supabase.from('perfiles').select('rol').eq('user_id', user.id).maybeSingle();
+        let { data: perfil } = await supabase.from('perfiles').select('rol').eq('user_id', user.id).maybeSingle();
+        if (!perfil) {
+          const res = await fetch('/api/auth/bootstrap-perfil', { method: 'POST' });
+          if (res.ok) {
+            const again = await supabase.from('perfiles').select('rol').eq('user_id', user.id).maybeSingle();
+            perfil = again.data;
+          }
+        }
         const roles = Array.isArray(perfil?.rol)
           ? perfil.rol
           : (typeof perfil?.rol === 'string' ? perfil.rol.split(',') : []);

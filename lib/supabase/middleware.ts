@@ -29,8 +29,9 @@ export async function updateSession(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
   const isLogin = path === '/login' || path.startsWith('/login/');
+  const isRegistro = path === '/registro' || path.startsWith('/registro/');
   const isSetPassword = path === '/set-password' || path.startsWith('/set-password/');
-  const isPublicAuth = isLogin || isSetPassword;
+  const isPublicAuth = isLogin || isRegistro || isSetPassword;
 
   if (!user && !isPublicAuth) {
     const url = request.nextUrl.clone();
@@ -38,7 +39,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && isLogin) {
+  if (user && (isLogin || isRegistro)) {
     const url = request.nextUrl.clone();
     url.pathname = '/';
     return NextResponse.redirect(url);
