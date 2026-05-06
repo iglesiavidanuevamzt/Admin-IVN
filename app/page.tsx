@@ -57,8 +57,13 @@ export default function AdminApp() {
           if (!cancelled) setAppRoles([]);
           return;
         }
-        const { data } = await supabase.from('perfiles').select('rol').eq('user_id', user.id).maybeSingle();
-        if (!cancelled) setAppRoles(parseRoles(typeof data?.rol === 'string' ? data.rol : null));
+        const { data: perfil } = await supabase.from('perfiles').select('rol').eq('user_id', user.id).maybeSingle();
+        const roles = Array.isArray(perfil?.rol)
+          ? perfil.rol
+          : (typeof perfil?.rol === 'string' ? perfil.rol.split(',') : []);
+        const normalizedRoles = parseRoles(roles);
+        console.log('Roles detectados:', normalizedRoles);
+        if (!cancelled) setAppRoles(normalizedRoles);
       } finally {
         if (!cancelled) setProfileLoading(false);
       }

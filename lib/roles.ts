@@ -26,11 +26,15 @@ const ROLE_SCREENS: Record<string, ReadonlySet<Screen>> = {
 };
 
 export function parseRoles(input: string | string[] | null | undefined): string[] {
-  if (Array.isArray(input)) return input.map((r) => r.trim()).filter(Boolean);
+  if (Array.isArray(input)) {
+    return input
+      .map((r) => r.trim().toLowerCase())
+      .filter(Boolean);
+  }
   if (!input) return [];
   return input
     .split(',')
-    .map((r) => r.trim())
+    .map((r) => r.trim().toLowerCase())
     .filter(Boolean);
 }
 
