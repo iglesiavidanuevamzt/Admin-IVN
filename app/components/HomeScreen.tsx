@@ -18,18 +18,19 @@ export const HomeScreen = ({
   profileLoading,
   showUserManagement,
 }: HomeScreenProps) => {
+  const hasRole = (...values: string[]) => values.some((v) => roles.includes(v));
   const isSuperAdmin = roles.includes('super-admin');
   const cards = [
-    roles.includes('devocional') || isSuperAdmin
+    hasRole('devocional', 'devocionales') || isSuperAdmin
       ? { id: 'devocional' as Screen, title: 'Devocionales', iconPath: '/icons/logo_devocionales.png' }
       : null,
-    roles.includes('anuncios') || isSuperAdmin
+    hasRole('anuncios', 'avisos') || isSuperAdmin
       ? { id: 'avisos' as Screen, title: 'Anuncios', iconPath: '/icons/logo_avisos.png' }
       : null,
     roles.includes('musica') || isSuperAdmin
       ? { id: 'alabanzas' as Screen, title: 'Alabanzas', iconPath: '/icons/alabanza.png' }
       : null,
-    roles.includes('agenda') || isSuperAdmin
+    hasRole('agenda', 'calendario') || isSuperAdmin
       ? { id: 'agenda-view' as Screen, title: 'Calendario', iconPath: '/icons/logo_agenda.png' }
       : null,
   ].filter(Boolean) as { id: Screen; title: string; iconPath: string }[];

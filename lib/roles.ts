@@ -20,21 +20,32 @@ const ROLE_SCREENS: Record<string, ReadonlySet<Screen>> = {
   [SUPER_ADMIN_ROLE]: ALL_SCREENS,
   musica: new Set(['home', 'alabanzas']),
   devocional: new Set(['home', 'devocional']),
+  devocionales: new Set(['home', 'devocional']),
   anuncios: new Set(['home', 'avisos', 'history']),
+  avisos: new Set(['home', 'avisos', 'history']),
   agenda: new Set(['home', 'agenda-view']),
+  calendario: new Set(['home', 'agenda-view']),
   encargado: new Set(['home']),
 };
+
+function normalizeRole(role: string): string {
+  return role
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
 
 export function parseRoles(input: string | string[] | null | undefined): string[] {
   if (Array.isArray(input)) {
     return input
-      .map((r) => r.trim().toLowerCase())
+      .map(normalizeRole)
       .filter(Boolean);
   }
   if (!input) return [];
   return input
     .split(',')
-    .map((r) => r.trim().toLowerCase())
+    .map(normalizeRole)
     .filter(Boolean);
 }
 

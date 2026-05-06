@@ -13,6 +13,30 @@ function credentialToJSON(credential: PublicKeyCredential): unknown {
   throw new Error('El navegador no soporta serialización WebAuthn requerida.');
 }
 
+function isTokenStorageError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
+  return (
+    msg.includes('refresh token') ||
+    msg.includes('invalid token') ||
+    msg.includes('jwt') ||
+    msg.includes('auth session missing') ||
+    msg.includes('session')
+  );
+}
+
+function clearSupabaseLocalStorage(): void {
+  if (typeof window === 'undefined') return;
+  const keysToRemove: string[] = [];
+  for (let i = 0; i < window.localStorage.length; i += 1) {
+    const key = window.localStorage.key(i);
+    if (!key) continue;
+    if (key.startsWith('sb-') || key.includes('supabase')) {
+      keysToRemove.push(key);
+    }
+  }
+  keysToRemove.forEach((k) => window.localStorage.removeItem(k));
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -83,6 +107,9 @@ export default function LoginPage() {
       router.refresh();
       router.push('/');
     } catch (err: unknown) {
+      if (isTokenStorageError(err)) {
+        clearSupabaseLocalStorage();
+      }
       setError(err instanceof Error ? err.message : 'No se pudo iniciar sesión.');
     } finally {
       setLoading(false);
