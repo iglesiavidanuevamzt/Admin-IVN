@@ -52,6 +52,20 @@ export default function SetPasswordPage() {
       return session;
     };
 
+    /** Respaldo si detectSessionInUrl no aplicó (p. ej. hidratación / orden de efectos). */
+    const trySessionFromHash = async (): Promise<import('@supabase/supabase-js').Session | null> => {
+      if (typeof window === 'undefined') return null;
+      const raw = window.location.hash.replace(/^#/, '');
+      if (!raw) return null;
+      const params = new URLSearchParams(raw);
+      const access_token = params.get('access_token');
+      const refresh_token = params.get('refresh_token');
+      if (!access_token || !refresh_token) return null;
+      const { data, error } = await supabase.auth.setSession({ access_token, refresh_token });
+      if (error) return null;
+      return data.session;
+    };
+
     const { data: subWrap } = supabase.auth.onAuthStateChange((event, session) => {
       if (cancelled) return;
       if (
@@ -73,8 +87,12 @@ export default function SetPasswordPage() {
         return;
       }
 
-      const expectRedirect = urlLooksLikeAuthRedirect();
-      if (expectRedirect) {
+      if (urlLooksLikeAuthRedirect()) {
+        session = await trySessionFromHash();
+        if (session) {
+          applySession(session);
+          return;
+        }
         const delays = [0, 80, 200, 450, 900, 1600, 2600];
         for (const ms of delays) {
           if (cancelled) return;

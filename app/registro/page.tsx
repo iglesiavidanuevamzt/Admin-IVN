@@ -7,6 +7,19 @@ import { Loader2, UserPlus } from 'lucide-react';
 import { supabase } from '@/lib/supabase-browser';
 import { REGISTRO_CATEGORIAS, SUPER_ADMIN_ROLE } from '@/lib/roles';
 
+/** Invitación/recuperación de Supabase lleva tokens en #…; /registro usa PKCE y no puede consumirlos. */
+function urlLooksLikeInviteOrRecoveryHash(): boolean {
+  if (typeof window === 'undefined') return false;
+  const h = window.location.hash.toLowerCase();
+  return (
+    h.includes('access_token') ||
+    h.includes('type=invite') ||
+    h.includes('type%3dinvite') ||
+    h.includes('type=recovery') ||
+    h.includes('type%3drecovery')
+  );
+}
+
 async function bootstrapPerfilFromClient(roles: string[]): Promise<{ ok: boolean; error?: string }> {
   const res = await fetch('/api/auth/bootstrap-perfil', {
     method: 'POST',
@@ -44,6 +57,13 @@ export default function RegistroPage() {
   const rolesForSignup = useMemo(() => Array.from(selected), [selected]);
 
   const authCallbackUrl = typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : undefined;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (urlLooksLikeInviteOrRecoveryHash()) {
+      window.location.replace(`/set-password${window.location.search}${window.location.hash}`);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
