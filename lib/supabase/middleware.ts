@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { isAdminOrSuperAdmin, parseRoles } from '@/lib/roles';
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -32,6 +33,7 @@ export async function updateSession(request: NextRequest) {
   const isRegistro = path === '/registro' || path.startsWith('/registro/');
   const isSetPassword = path === '/set-password' || path.startsWith('/set-password/');
   const isAuthCallback = path === '/auth/callback' || path.startsWith('/auth/callback/');
+  const isAdminUsuarios = path === '/admin/usuarios' || path.startsWith('/admin/usuarios/');
   const isPublicAuth = isLogin || isRegistro || isSetPassword || isAuthCallback;
 
   if (!user && !isPublicAuth) {
@@ -44,6 +46,16 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = '/';
     return NextResponse.redirect(url);
+  }
+
+  if (user && isAdminUsuarios) {
+    const { data: perfil } = await supabase.from('perfiles').select('rol').eq('user_id', user.id).maybeSingle();
+    const roles = parseRoles(Array.isArray(perfil?.rol) ? perfil.rol : perfil?.rol);
+    if (!isAdminOrSuperAdmin(roles)) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/';
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;

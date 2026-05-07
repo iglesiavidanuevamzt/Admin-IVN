@@ -10,7 +10,7 @@ import { PraisesForm } from './components/PraisesForm';
 import { CalendarView } from './components/CalendarView';
 import { FormState, Screen } from '../types';
 import { supabase } from '@/lib/supabase-browser';
-import { canAccessScreen, isSuperAdmin, parseRoles } from '@/lib/roles';
+import { canAccessScreen, isAdminOrSuperAdmin, parseRoles } from '@/lib/roles';
 
 const getFechaHoy = () => new Date().toISOString().split('T')[0];
 
@@ -87,7 +87,7 @@ export default function AdminApp() {
     }
   }, [appRoles, profileLoading, currentScreen]);
 
-  const showUserManagement = isSuperAdmin(appRoles);
+  const showUserManagement = isAdminOrSuperAdmin(appRoles);
 
   const handleNavigate = (screen: Screen) => {
     if (!canAccessScreen(appRoles, screen)) return;

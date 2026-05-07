@@ -2,10 +2,11 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Mail } from 'lucide-react';
-import { ASSIGNABLE_ROLES } from '@/lib/roles';
+import { ArrowLeft, Loader2, Mail, X } from 'lucide-react';
+import { ADMIN_USER_EDIT_ROLES } from '@/lib/roles';
 
-type UsuarioRow = { userId: string; email: string; rol: string | null; roles?: string[] };
+type UsuarioRow = { userId: string; email: string; roles: string[] };
+type AdminMe = { userId: string; isSuperAdmin: boolean };
 
 export default function AdminUsuariosPage() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
@@ -17,6 +18,9 @@ export default function AdminUsuariosPage() {
   const [inviteMsg, setInviteMsg] = useState<string | null>(null);
   const [inviteErr, setInviteErr] = useState<string | null>(null);
   const [rowSaving, setRowSaving] = useState<string | null>(null);
+  const [editingUser, setEditingUser] = useState<UsuarioRow | null>(null);
+  const [draftRoles, setDraftRoles] = useState<string[]>([]);
+  const [adminMe, setAdminMe] = useState<AdminMe | null>(null);
 
   const loadUsuarios = useCallback(async () => {
     setLoading(true);
@@ -31,7 +35,7 @@ export default function AdminUsuariosPage() {
       }
       if (!res.ok) throw new Error(body.error || 'No se pudo cargar la lista.');
       setAllowed(true);
-      setUsuarios(body.usuarios ?? []);
+      setUsuarios(Array.isArray(body.usuarios) ? body.usuarios : []);
     } catch (e: unknown) {
       setLoadError(e instanceof Error ? e.message : 'Error de red.');
     } finally {
@@ -42,6 +46,25 @@ export default function AdminUsuariosPage() {
   useEffect(() => {
     void loadUsuarios();
   }, [loadUsuarios]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/admin/me');
+        const body = (await res.json().catch(() => ({}))) as { userId?: string; isSuperAdmin?: boolean };
+        if (!res.ok || cancelled) return;
+        if (typeof body.userId === 'string') {
+          setAdminMe({ userId: body.userId, isSuperAdmin: body.isSuperAdmin === true });
+        }
+      } catch {
+        // Si falla, mantenemos UI funcional y dejamos la validación al backend.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const sendInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,14 +100,39 @@ export default function AdminUsuariosPage() {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error || 'No se pudieron actualizar los roles.');
-      setUsuarios((prev) =>
-        prev.map((u) => (u.userId === userId ? { ...u, roles, rol: roles.join(',') } : u))
-      );
+      setUsuarios((prev) => prev.map((u) => (u.userId === userId ? { ...u, roles } : u)));
+      setEditingUser((prev) => (prev?.userId === userId ? { ...prev, roles } : prev));
     } catch (e: unknown) {
       setLoadError(e instanceof Error ? e.message : 'Error al guardar.');
     } finally {
       setRowSaving(null);
     }
+  };
+
+  const openEditor = (usuario: UsuarioRow) => {
+    setEditingUser(usuario);
+    setDraftRoles(usuario.roles ?? []);
+  };
+
+  const getEditRestriction = (usuario: UsuarioRow): string | null => {
+    if (!adminMe) return null;
+    if (!adminMe.isSuperAdmin && usuario.userId === adminMe.userId) {
+      return 'No puedes editar tus propios roles.';
+    }
+    if (!adminMe.isSuperAdmin && usuario.roles.includes('super-admin')) {
+      return 'Solo un super-admin puede editar esta cuenta.';
+    }
+    return null;
+  };
+
+  const toggleDraftRole = (value: string) => {
+    setDraftRoles((prev) => (prev.includes(value) ? prev.filter((r) => r !== value) : [...prev, value]));
+  };
+
+  const saveDraftRoles = async () => {
+    if (!editingUser) return;
+    await changeRoles(editingUser.userId, draftRoles);
+    setEditingUser(null);
   };
 
   if (loading && allowed === null && !loadError) {
@@ -120,7 +168,7 @@ export default function AdminUsuariosPage() {
 
         <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-lg sm:p-8">
           <h1 className="font-serif text-xl font-bold text-[#1b3a4a]">Gestión de usuarios</h1>
-          <p className="mt-1 text-sm text-slate-600">Correos registrados y rol en la tabla perfiles.</p>
+          <p className="mt-1 text-sm text-slate-600">Correos registrados y roles actuales en la tabla perfiles.</p>
 
           {loadError && (
             <p className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</p>
@@ -167,50 +215,103 @@ export default function AdminUsuariosPage() {
                     <tr>
                       <th className="px-4 py-3">Correo</th>
                       <th className="px-4 py-3">Roles</th>
+                      <th className="px-4 py-3 text-right">Acción</th>
                     </tr>
                   </thead>
                   <tbody>
                     {usuarios.map((u) => (
                       <tr key={u.userId} className="border-b border-slate-50 last:border-0">
                         <td className="max-w-[200px] truncate px-4 py-3 text-slate-800">{u.email || '—'}</td>
-                        <td className="px-4 py-2">
-                          <div className="grid gap-2 py-1">
-                            {ASSIGNABLE_ROLES.map((r) => {
-                              const currentRoles = u.roles ?? (u.rol ? u.rol.split(',').map((x) => x.trim()).filter(Boolean) : []);
-                              const checked = currentRoles.includes(r.value);
-                              return (
-                                <label key={r.value} className="flex items-center gap-2 text-xs text-slate-700">
-                                  <input
-                                    type="checkbox"
-                                    className="h-4 w-4 rounded border-slate-300"
-                                    checked={checked}
-                                    disabled={rowSaving === u.userId}
-                                    onChange={(e) => {
-                                      const next = e.target.checked
-                                        ? [...currentRoles, r.value]
-                                        : currentRoles.filter((x) => x !== r.value);
-                                      if (next.length === 0) return;
-                                      void changeRoles(u.userId, next);
-                                    }}
-                                  />
-                                  {r.label}
-                                </label>
-                              );
-                            })}
-                          </div>
+                        <td className="px-4 py-3 text-xs text-slate-700">
+                          {u.roles.length > 0 ? u.roles.join(', ') : <span className="text-slate-400">visitante</span>}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {(() => {
+                            const restriction = getEditRestriction(u);
+                            const disabled = Boolean(restriction);
+                            return (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => openEditor(u)}
+                                  disabled={disabled}
+                                  title={restriction ?? 'Editar roles'}
+                                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-[#1b3a4a] hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:bg-transparent"
+                                >
+                                  Editar
+                                </button>
+                                {restriction && <p className="mt-1 text-[11px] text-slate-400">{restriction}</p>}
+                              </>
+                            );
+                          })()}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
                 {usuarios.length === 0 && !loading && (
-                  <p className="px-4 py-6 text-center text-sm text-slate-500">No hay usuarios en Auth.</p>
+                  <p className="px-4 py-6 text-center text-sm text-slate-500">No hay perfiles registrados.</p>
                 )}
               </div>
             )}
           </section>
         </div>
       </div>
+
+      {editingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-base font-black text-[#1b3a4a]">Editar módulos</h3>
+                <p className="mt-1 text-xs text-slate-500">{editingUser.email}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingUser(null)}
+                className="rounded-lg p-1 text-slate-500 hover:bg-slate-100"
+                aria-label="Cerrar"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-2">
+              {ADMIN_USER_EDIT_ROLES.map((role) => (
+                <label key={role.value} className="flex items-center gap-2 rounded-lg px-1 py-1 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-slate-300"
+                    checked={draftRoles.includes(role.value)}
+                    onChange={() => toggleDraftRole(role.value)}
+                    disabled={rowSaving === editingUser.userId}
+                  />
+                  {role.label}
+                  <span className="text-xs text-slate-400">({role.value})</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setEditingUser(null)}
+                className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => void saveDraftRoles()}
+                disabled={rowSaving === editingUser.userId}
+                className="rounded-lg bg-[#1b3a4a] px-3 py-2 text-xs font-black uppercase tracking-widest text-white disabled:opacity-50"
+              >
+                {rowSaving === editingUser.userId ? 'Guardando…' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

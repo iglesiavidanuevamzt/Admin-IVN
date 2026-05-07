@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  const redirectTo = siteUrl ? `${siteUrl}/set-password` : undefined;
+  const redirectTo = siteUrl ? `${siteUrl}/registro` : undefined;
   const { error } = await admin.auth.admin.inviteUserByEmail(inviteEmail, {
     redirectTo,
   });
@@ -49,6 +49,6 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({
-    message: 'Invitación enviada. El usuario recibirá un correo para establecer su contraseña.',
+    message: 'Invitación enviada. El usuario recibirá un correo para completar su registro.',
   });
 }

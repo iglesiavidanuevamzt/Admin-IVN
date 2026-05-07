@@ -1,4 +1,4 @@
-import { isSuperAdmin } from '@/lib/roles';
+import { isAdminOrSuperAdmin } from '@/lib/roles';
 
 export function parseInviterEmails(): string[] {
   const raw = process.env.INVITER_EMAILS ?? '';
@@ -8,8 +8,8 @@ export function parseInviterEmails(): string[] {
     .filter(Boolean);
 }
 
-export function emailMayInvite(email: string | undefined, rol: string | null): boolean {
-  if (isSuperAdmin(rol)) return true;
+export function emailMayInvite(email: string | undefined, rol: string[] | string | null): boolean {
+  if (isAdminOrSuperAdmin(rol)) return true;
   if (!email) return false;
   const norm = email.trim().toLowerCase();
   return parseInviterEmails().includes(norm);

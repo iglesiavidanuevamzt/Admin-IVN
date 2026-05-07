@@ -1,6 +1,7 @@
 import type { Screen } from '@/types';
 
 export const SUPER_ADMIN_ROLE = 'super-admin';
+export const ADMIN_ROLE = 'admin';
 
 /** Pantallas que pueden abrirse desde la navegación (incluye subpantallas). */
 const ALL_SCREENS: ReadonlySet<Screen> = new Set([
@@ -18,6 +19,7 @@ const ALL_SCREENS: ReadonlySet<Screen> = new Set([
  */
 const ROLE_SCREENS: Record<string, ReadonlySet<Screen>> = {
   [SUPER_ADMIN_ROLE]: ALL_SCREENS,
+  [ADMIN_ROLE]: ALL_SCREENS,
   musica: new Set(['home', 'alabanzas']),
   devocional: new Set(['home', 'devocional']),
   devocionales: new Set(['home', 'devocional']),
@@ -74,9 +76,15 @@ export function isSuperAdmin(rolesInput: string | string[] | null | undefined): 
   return parseRoles(rolesInput).includes(SUPER_ADMIN_ROLE);
 }
 
+export function isAdminOrSuperAdmin(rolesInput: string | string[] | null | undefined): boolean {
+  const roles = parseRoles(rolesInput);
+  return roles.includes(SUPER_ADMIN_ROLE) || roles.includes(ADMIN_ROLE);
+}
+
 /** Roles que puede asignar un super-admin en /admin/usuarios */
 export const ASSIGNABLE_ROLES: { value: string; label: string }[] = [
   { value: SUPER_ADMIN_ROLE, label: 'Super administrador' },
+  { value: ADMIN_ROLE, label: 'Administrador' },
   { value: 'musica', label: 'Música / Alabanzas' },
   { value: 'biblias', label: 'Biblias' },
   { value: 'devocional', label: 'Devocionales' },
@@ -87,6 +95,17 @@ export const ASSIGNABLE_ROLES: { value: string; label: string }[] = [
 ];
 
 export const ASSIGNABLE_ROLE_VALUES = new Set(ASSIGNABLE_ROLES.map((r) => r.value));
+
+/** Checkboxes habilitados en /admin/usuarios (delegación operativa). */
+export const ADMIN_USER_EDIT_ROLES: { value: string; label: string }[] = [
+  { value: 'musica', label: 'Alabanzas' },
+  { value: 'devocional', label: 'Devocionales' },
+  { value: 'anuncios', label: 'Avisos' },
+  { value: 'agenda', label: 'Calendario' },
+  { value: ADMIN_ROLE, label: 'Administrador' },
+];
+
+export const ADMIN_USER_EDIT_ROLE_VALUES = new Set(ADMIN_USER_EDIT_ROLES.map((r) => r.value));
 
 /**
  * Categorías en /registro (checkboxes). Debe coincidir con valores válidos en `perfiles.rol` (text[]).

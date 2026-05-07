@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { emailMayInvite } from '@/lib/admin/inviters';
 import { getSessionAndRol } from '@/lib/admin/session-profile';
+import { isSuperAdmin } from '@/lib/roles';
 
 export async function GET() {
   const session = await getSessionAndRol();
@@ -10,6 +11,8 @@ export async function GET() {
   const canInvite = emailMayInvite(session.user.email, session.rol);
   return NextResponse.json({
     rol: session.rol,
+    userId: session.user.id,
+    isSuperAdmin: isSuperAdmin(session.rol),
     canInvite,
     email: session.user.email ?? null,
   });
