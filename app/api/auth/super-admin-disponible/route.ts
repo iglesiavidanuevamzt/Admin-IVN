@@ -2,10 +2,13 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { SUPER_ADMIN_ROLE } from '@/lib/roles';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!serviceKey) {
-    return NextResponse.json({ disponible: true });
+    return NextResponse.json({ disponible: true }, { headers: { 'Cache-Control': 'no-store' } });
   }
 
   const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey, {
@@ -19,8 +22,11 @@ export async function GET() {
     .limit(1);
 
   if (error) {
-    return NextResponse.json({ disponible: true });
+    return NextResponse.json({ disponible: true }, { headers: { 'Cache-Control': 'no-store' } });
   }
 
-  return NextResponse.json({ disponible: (data?.length ?? 0) === 0 });
+  return NextResponse.json(
+    { disponible: (data?.length ?? 0) === 0 },
+    { headers: { 'Cache-Control': 'no-store' } }
+  );
 }
