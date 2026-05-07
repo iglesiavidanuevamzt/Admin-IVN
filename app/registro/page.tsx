@@ -29,7 +29,7 @@ export default function RegistroPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
-  const [superAdminDisponible, setSuperAdminDisponible] = useState(true);
+  const [superAdminDisponible, setSuperAdminDisponible] = useState<boolean | null>(null);
 
   const toggle = useCallback((value: string) => {
     setSelected((prev) => {
@@ -41,13 +41,6 @@ export default function RegistroPage() {
   }, []);
 
   const rolesForSignup = useMemo(() => Array.from(selected), [selected]);
-  const categoriasDisponibles = useMemo(
-    () =>
-      superAdminDisponible
-        ? REGISTRO_CATEGORIAS
-        : REGISTRO_CATEGORIAS.filter((c) => c.value !== SUPER_ADMIN_ROLE),
-    [superAdminDisponible]
-  );
 
   const authCallbackUrl = typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : undefined;
 
@@ -60,13 +53,23 @@ export default function RegistroPage() {
         if (!res.ok || cancelled) return;
         setSuperAdminDisponible(body.disponible === true);
       } catch {
-        if (!cancelled) setSuperAdminDisponible(true);
+        if (!cancelled) setSuperAdminDisponible(null);
       }
     })();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (superAdminDisponible !== false) return;
+    setSelected((prev) => {
+      if (!prev.has(SUPER_ADMIN_ROLE)) return prev;
+      const next = new Set(prev);
+      next.delete(SUPER_ADMIN_ROLE);
+      return next;
+    });
+  }, [superAdminDisponible]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,9 +86,8 @@ export default function RegistroPage() {
 
     setLoading(true);
     try {
-      const effectiveRoles = superAdminDisponible
-        ? rolesForSignup
-        : rolesForSignup.filter((r) => r !== SUPER_ADMIN_ROLE);
+      const effectiveRoles =
+        superAdminDisponible === false ? rolesForSignup.filter((r) => r !== SUPER_ADMIN_ROLE) : rolesForSignup;
       const { data, error: signErr } = await supabase.auth.signUp({
         email: email.trim(),
         password,
@@ -183,17 +185,26 @@ export default function RegistroPage() {
               Categorías / módulos
             </legend>
             <ul className="mt-2 max-h-52 space-y-2 overflow-y-auto text-sm">
-              {categoriasDisponibles.map((cat) => (
+              {REGISTRO_CATEGORIAS.map((cat) => (
                 <li key={cat.value} className="flex items-start gap-2">
                   <input
                     id={`cat-${cat.value}`}
                     type="checkbox"
                     checked={selected.has(cat.value)}
                     onChange={() => toggle(cat.value)}
+                    disabled={cat.value === SUPER_ADMIN_ROLE && superAdminDisponible === false}
                     className="mt-1 rounded border-slate-300"
                   />
-                  <label htmlFor={`cat-${cat.value}`} className="cursor-pointer text-slate-700">
+                  <label
+                    htmlFor={`cat-${cat.value}`}
+                    className={
+                      cat.value === SUPER_ADMIN_ROLE && superAdminDisponible === false
+                        ? 'cursor-not-allowed text-slate-400'
+                        : 'cursor-pointer text-slate-700'
+                    }
+                  >
                     {cat.label}
+                    {cat.value === SUPER_ADMIN_ROLE && superAdminDisponible === false ? ' (no disponible)' : ''}
                   </label>
                 </li>
               ))}
