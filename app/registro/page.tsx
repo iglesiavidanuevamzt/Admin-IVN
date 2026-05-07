@@ -29,7 +29,7 @@ export default function RegistroPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
-  const [superAdminDisponible, setSuperAdminDisponible] = useState(false);
+  const [superAdminDisponible, setSuperAdminDisponible] = useState(true);
 
   const toggle = useCallback((value: string) => {
     setSelected((prev) => {
@@ -60,7 +60,7 @@ export default function RegistroPage() {
         if (!res.ok || cancelled) return;
         setSuperAdminDisponible(body.disponible === true);
       } catch {
-        if (!cancelled) setSuperAdminDisponible(false);
+        if (!cancelled) setSuperAdminDisponible(true);
       }
     })();
     return () => {

@@ -5,7 +5,7 @@ import { SUPER_ADMIN_ROLE } from '@/lib/roles';
 export async function GET() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!serviceKey) {
-    return NextResponse.json({ disponible: false });
+    return NextResponse.json({ disponible: true });
   }
 
   const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey, {
@@ -19,7 +19,7 @@ export async function GET() {
     .limit(1);
 
   if (error) {
-    return NextResponse.json({ disponible: false });
+    return NextResponse.json({ disponible: true });
   }
 
   return NextResponse.json({ disponible: (data?.length ?? 0) === 0 });
