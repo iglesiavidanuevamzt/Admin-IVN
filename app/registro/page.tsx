@@ -29,7 +29,8 @@ export default function RegistroPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
-  const [superAdminDisponible, setSuperAdminDisponible] = useState<boolean | null>(null);
+  /** Solo se deshabilita si el servidor responde explícitamente disponible: false. Por defecto permitir (alta inicial). */
+  const [superAdminDisponible, setSuperAdminDisponible] = useState(true);
 
   const toggle = useCallback((value: string) => {
     setSelected((prev) => {
@@ -50,10 +51,15 @@ export default function RegistroPage() {
       try {
         const res = await fetch(`/api/auth/super-admin-disponible?t=${Date.now()}`, { cache: 'no-store' });
         const body = (await res.json().catch(() => ({}))) as { disponible?: boolean };
-        if (!res.ok || cancelled) return;
-        setSuperAdminDisponible(body.disponible === true);
+        if (cancelled) return;
+        if (!res.ok) {
+          setSuperAdminDisponible(true);
+          return;
+        }
+        // Importante: solo false deshabilita. undefined / JSON raro / ausente → no bloquear el alta.
+        setSuperAdminDisponible(body.disponible !== false);
       } catch {
-        if (!cancelled) setSuperAdminDisponible(null);
+        if (!cancelled) setSuperAdminDisponible(true);
       }
     })();
     return () => {
