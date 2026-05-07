@@ -64,11 +64,11 @@ export async function PATCH(request: Request) {
   }
 
   const userId = typeof body.userId === 'string' ? body.userId.trim() : '';
-  const roles = Array.isArray(body.roles) ? body.roles.map((r) => r.trim()).filter(Boolean) : [];
-  if (!userId || roles.some((r) => !ADMIN_USER_EDIT_ROLE_VALUES.has(r))) {
-    return NextResponse.json({ error: 'userId o roles inválidos.' }, { status: 400 });
+  if (!userId) {
+    return NextResponse.json({ error: 'userId inválido.' }, { status: 400 });
   }
-  const rolesUnique = Array.from(new Set(roles));
+
+  const incoming = Array.isArray(body.roles) ? body.roles.map((r) => r.trim()).filter(Boolean) : [];
   const actorIsSuperAdmin = isSuperAdmin(session.rol);
 
   // Guardrail: un admin no puede editar su propia cuenta para evitar bloqueo/escalación accidental.
@@ -89,7 +89,8 @@ export async function PATCH(request: Request) {
   }
 
   // Guardrail: solo super-admin puede modificar cuentas que ya tengan super-admin.
-  const { data: targetPerfil } = await admin.from('perfiles').select('rol').eq('user_id', userId).maybeSingle();
+  const { data: targetPerfil } = await admin.from('perfiles').select('user_id, rol').eq('user_id', userId).maybeSingle();
+  const rowExists = Boolean(targetPerfil?.user_id);
   const targetRoles = parseRoles(
     Array.isArray(targetPerfil?.rol) ? targetPerfil.rol : typeof targetPerfil?.rol === 'string' ? targetPerfil.rol : null
   );
@@ -97,7 +98,35 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: 'Solo super-admin puede modificar esa cuenta.' }, { status: 403 });
   }
 
-  const { data: existing } = await admin.from('perfiles').select('user_id').eq('user_id', userId).maybeSingle();
+  /**
+   * El cliente envía todos los roles del modal (p. ej. visitante + módulos). Solo estos valores son editables por checkbox:
+   * musica, devocional, anuncios, agenda, admin. El resto (visitante, super-admin, biblias, …) se conserva desde BD
+   * y se sustituye el bloque editable por lo que marcó el admin.
+   */
+  const editableIncoming = incoming.filter((r) => ADMIN_USER_EDIT_ROLE_VALUES.has(r));
+  /** El modal puede enviar `visitante` aunque aún no exista fila en perfiles (target vacío). */
+  const ignorableExtra = new Set(['visitante']);
+  const unknown = incoming.filter(
+    (r) =>
+      !ADMIN_USER_EDIT_ROLE_VALUES.has(r) &&
+      !targetRoles.includes(r) &&
+      !ignorableExtra.has(r)
+  );
+  if (unknown.length > 0) {
+    return NextResponse.json(
+      { error: `Rol no permitido en esta acción: ${unknown.join(', ')}.` },
+      { status: 400 }
+    );
+  }
+
+  const preserved = targetRoles.filter((r) => !ADMIN_USER_EDIT_ROLE_VALUES.has(r));
+  let rolesUnique = [...new Set([...preserved, ...editableIncoming])];
+  if (editableIncoming.length > 0) {
+    rolesUnique = rolesUnique.filter((r) => r !== 'visitante');
+  }
+  if (rolesUnique.length === 0) {
+    rolesUnique = ['visitante'];
+  }
 
   const runUpdate = async (payload: { rol: string[]; email: string }) => {
     const { data, error, count } = await admin
@@ -131,7 +160,7 @@ export async function PATCH(request: Request) {
   };
 
   let error: { message: string } | null = null;
-  if (existing) {
+  if (rowExists) {
     const updated = await runUpdate({ rol: rolesUnique, email });
     if (!updated.error && (updated.count ?? updated.data?.length ?? 0) === 0) {
       error = { message: 'No se actualizó ninguna fila. Verifica que la clave sea user_id.' };
