@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Loader2, UserPlus } from 'lucide-react';
 import { supabase } from '@/lib/supabase-browser';
-import { REGISTRO_CATEGORIAS } from '@/lib/roles';
+import { REGISTRO_CATEGORIAS, SUPER_ADMIN_ROLE } from '@/lib/roles';
 
 async function bootstrapPerfilFromClient(roles: string[]): Promise<{ ok: boolean; error?: string }> {
   const res = await fetch('/api/auth/bootstrap-perfil', {
@@ -29,6 +29,7 @@ export default function RegistroPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [superAdminDisponible, setSuperAdminDisponible] = useState(false);
 
   const toggle = useCallback((value: string) => {
     setSelected((prev) => {
@@ -40,8 +41,32 @@ export default function RegistroPage() {
   }, []);
 
   const rolesForSignup = useMemo(() => Array.from(selected), [selected]);
+  const categoriasDisponibles = useMemo(
+    () =>
+      superAdminDisponible
+        ? REGISTRO_CATEGORIAS
+        : REGISTRO_CATEGORIAS.filter((c) => c.value !== SUPER_ADMIN_ROLE),
+    [superAdminDisponible]
+  );
 
   const authCallbackUrl = typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : undefined;
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/auth/super-admin-disponible');
+        const body = (await res.json().catch(() => ({}))) as { disponible?: boolean };
+        if (!res.ok || cancelled) return;
+        setSuperAdminDisponible(body.disponible === true);
+      } catch {
+        if (!cancelled) setSuperAdminDisponible(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,20 +83,23 @@ export default function RegistroPage() {
 
     setLoading(true);
     try {
+      const effectiveRoles = superAdminDisponible
+        ? rolesForSignup
+        : rolesForSignup.filter((r) => r !== SUPER_ADMIN_ROLE);
       const { data, error: signErr } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
           emailRedirectTo: authCallbackUrl,
           data: {
-            registration_roles: rolesForSignup,
+            registration_roles: effectiveRoles,
           },
         },
       });
       if (signErr) throw signErr;
 
       if (data.session) {
-        const boot = await bootstrapPerfilFromClient(rolesForSignup);
+        const boot = await bootstrapPerfilFromClient(effectiveRoles);
         if (!boot.ok) {
           setError(boot.error ?? 'Cuenta creada pero no se pudo preparar tu perfil. Contacta al administrador.');
           return;
@@ -155,7 +183,7 @@ export default function RegistroPage() {
               Categorías / módulos
             </legend>
             <ul className="mt-2 max-h-52 space-y-2 overflow-y-auto text-sm">
-              {REGISTRO_CATEGORIAS.map((cat) => (
+              {categoriasDisponibles.map((cat) => (
                 <li key={cat.value} className="flex items-start gap-2">
                   <input
                     id={`cat-${cat.value}`}
@@ -170,6 +198,9 @@ export default function RegistroPage() {
                 </li>
               ))}
             </ul>
+            <p className="mt-3 text-xs text-slate-500">
+              El rol Super Administrador solo está disponible durante el alta inicial del sistema.
+            </p>
           </fieldset>
 
           {error && <p className="text-center text-sm text-red-600">{error}</p>}

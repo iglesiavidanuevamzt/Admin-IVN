@@ -111,6 +111,7 @@ export const ADMIN_USER_EDIT_ROLE_VALUES = new Set(ADMIN_USER_EDIT_ROLES.map((r)
  * Categorías en /registro (checkboxes). Debe coincidir con valores válidos en `perfiles.rol` (text[]).
  */
 export const REGISTRO_CATEGORIAS: { value: string; label: string }[] = [
+  { value: SUPER_ADMIN_ROLE, label: 'Super administrador (alta inicial)' },
   { value: 'devocional', label: 'Devocionales' },
   { value: 'anuncios', label: 'Avisos (Anuncios)' },
   { value: 'musica', label: 'Alabanzas (Música)' },

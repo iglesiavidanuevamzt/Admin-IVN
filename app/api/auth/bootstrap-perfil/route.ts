@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createServerSupabase } from '@/lib/supabase/server';
-import { parseRoles, REGISTRO_ROLE_VALUES } from '@/lib/roles';
+import { parseRoles, REGISTRO_ROLE_VALUES, SUPER_ADMIN_ROLE } from '@/lib/roles';
 
 const DEFAULT_ROLES = ['visitante'];
 
@@ -24,6 +24,18 @@ function pickRoles(bodyRoles: unknown, userMetadata: Record<string, unknown> | u
   if (filteredMeta.length > 0) return filteredMeta;
 
   return DEFAULT_ROLES;
+}
+
+async function superAdminAlreadyExists(
+  admin: ReturnType<typeof createClient>
+): Promise<{ exists: boolean; error?: string }> {
+  const { data, error } = await admin
+    .from('perfiles')
+    .select('user_id')
+    .contains('rol', [SUPER_ADMIN_ROLE])
+    .limit(1);
+  if (error) return { exists: false, error: error.message };
+  return { exists: (data?.length ?? 0) > 0 };
 }
 
 /**
@@ -60,7 +72,18 @@ export async function POST(request: Request) {
     bodyRoles = undefined;
   }
 
-  const rolesToInsert = pickRoles(bodyRoles, user.user_metadata as Record<string, unknown> | undefined);
+  let rolesToInsert = pickRoles(bodyRoles, user.user_metadata as Record<string, unknown> | undefined);
+
+  if (rolesToInsert.includes(SUPER_ADMIN_ROLE)) {
+    const superAdminStatus = await superAdminAlreadyExists(admin);
+    if (superAdminStatus.error) {
+      return NextResponse.json({ error: superAdminStatus.error }, { status: 400 });
+    }
+    if (superAdminStatus.exists) {
+      rolesToInsert = rolesToInsert.filter((r) => r !== SUPER_ADMIN_ROLE);
+      if (rolesToInsert.length === 0) rolesToInsert = DEFAULT_ROLES;
+    }
+  }
 
   const { data: existing } = await admin.from('perfiles').select('user_id').eq('user_id', user.id).maybeSingle();
   if (existing) {
