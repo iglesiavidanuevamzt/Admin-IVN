@@ -48,7 +48,7 @@ export default function RegistroPage() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('/api/auth/super-admin-disponible', { cache: 'no-store' });
+        const res = await fetch(`/api/auth/super-admin-disponible?t=${Date.now()}`, { cache: 'no-store' });
         const body = (await res.json().catch(() => ({}))) as { disponible?: boolean };
         if (!res.ok || cancelled) return;
         setSuperAdminDisponible(body.disponible === true);
