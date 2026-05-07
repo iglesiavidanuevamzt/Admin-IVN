@@ -26,18 +26,6 @@ function pickRoles(bodyRoles: unknown, userMetadata: Record<string, unknown> | u
   return DEFAULT_ROLES;
 }
 
-async function superAdminAlreadyExists(
-  admin: ReturnType<typeof createClient>
-): Promise<{ exists: boolean; error?: string }> {
-  const { data, error } = await admin
-    .from('perfiles')
-    .select('user_id')
-    .contains('rol', [SUPER_ADMIN_ROLE])
-    .limit(1);
-  if (error) return { exists: false, error: error.message };
-  return { exists: (data?.length ?? 0) > 0 };
-}
-
 /**
  * Crea la fila en `perfiles` si no existe. Roles: cuerpo JSON, metadatos de registro en Auth, o valor por defecto.
  */
@@ -75,11 +63,15 @@ export async function POST(request: Request) {
   let rolesToInsert = pickRoles(bodyRoles, user.user_metadata as Record<string, unknown> | undefined);
 
   if (rolesToInsert.includes(SUPER_ADMIN_ROLE)) {
-    const superAdminStatus = await superAdminAlreadyExists(admin);
-    if (superAdminStatus.error) {
-      return NextResponse.json({ error: superAdminStatus.error }, { status: 400 });
+    const { data: superAdminRows, error: superAdminErr } = await admin
+      .from('perfiles')
+      .select('user_id')
+      .contains('rol', [SUPER_ADMIN_ROLE])
+      .limit(1);
+    if (superAdminErr) {
+      return NextResponse.json({ error: superAdminErr.message }, { status: 400 });
     }
-    if (superAdminStatus.exists) {
+    if ((superAdminRows?.length ?? 0) > 0) {
       rolesToInsert = rolesToInsert.filter((r) => r !== SUPER_ADMIN_ROLE);
       if (rolesToInsert.length === 0) rolesToInsert = DEFAULT_ROLES;
     }
