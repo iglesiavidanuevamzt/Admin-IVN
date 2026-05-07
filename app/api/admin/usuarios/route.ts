@@ -182,3 +182,53 @@ export async function PATCH(request: Request) {
 
   return NextResponse.json({ ok: true, userId, roles: rolesUnique });
 }
+
+export async function DELETE(request: Request) {
+  const session = await getSessionAndRol();
+  if (!session.user) {
+    return NextResponse.json({ error: 'Sesión no válida.' }, { status: 401 });
+  }
+  if (!isSuperAdmin(session.rol)) {
+    return NextResponse.json({ error: 'Solo super-admin puede eliminar usuarios.' }, { status: 403 });
+  }
+
+  const admin = adminClient();
+  if (!admin) {
+    return NextResponse.json({ error: 'Servidor sin clave de servicio.' }, { status: 500 });
+  }
+
+  let body: { userId?: string };
+  try {
+    body = (await request.json()) as { userId?: string };
+  } catch {
+    return NextResponse.json({ error: 'JSON inválido.' }, { status: 400 });
+  }
+
+  const userId = typeof body.userId === 'string' ? body.userId.trim() : '';
+  if (!userId) {
+    return NextResponse.json({ error: 'userId inválido.' }, { status: 400 });
+  }
+  if (userId === session.user.id) {
+    return NextResponse.json({ error: 'No puedes eliminar tu propia cuenta.' }, { status: 403 });
+  }
+
+  const { data: targetPerfil } = await admin.from('perfiles').select('rol').eq('user_id', userId).maybeSingle();
+  const targetRoles = parseRoles(
+    Array.isArray(targetPerfil?.rol) ? targetPerfil.rol : typeof targetPerfil?.rol === 'string' ? targetPerfil.rol : null
+  );
+  if (isSuperAdmin(targetRoles)) {
+    return NextResponse.json({ error: 'No se puede eliminar otra cuenta super-admin desde esta acción.' }, { status: 403 });
+  }
+
+  const { error: perfilErr } = await admin.from('perfiles').delete().eq('user_id', userId);
+  if (perfilErr) {
+    return NextResponse.json({ error: perfilErr.message }, { status: 400 });
+  }
+
+  const { error: authErr } = await admin.auth.admin.deleteUser(userId);
+  if (authErr) {
+    return NextResponse.json({ error: authErr.message }, { status: 400 });
+  }
+
+  return NextResponse.json({ ok: true, userId });
+}

@@ -18,6 +18,7 @@ export default function AdminUsuariosPage() {
   const [inviteMsg, setInviteMsg] = useState<string | null>(null);
   const [inviteErr, setInviteErr] = useState<string | null>(null);
   const [rowSaving, setRowSaving] = useState<string | null>(null);
+  const [rowDeleting, setRowDeleting] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<UsuarioRow | null>(null);
   const [draftRoles, setDraftRoles] = useState<string[]>([]);
   const [adminMe, setAdminMe] = useState<AdminMe | null>(null);
@@ -106,6 +107,28 @@ export default function AdminUsuariosPage() {
       setLoadError(e instanceof Error ? e.message : 'Error al guardar.');
     } finally {
       setRowSaving(null);
+    }
+  };
+
+  const removeUser = async (usuario: UsuarioRow) => {
+    if (!adminMe?.isSuperAdmin) return;
+    const ok = window.confirm(`¿Eliminar la cuenta de ${usuario.email || usuario.userId}?\nEsta acción no se puede deshacer.`);
+    if (!ok) return;
+    setRowDeleting(usuario.userId);
+    setLoadError(null);
+    try {
+      const res = await fetch('/api/admin/usuarios', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: usuario.userId }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || 'No se pudo eliminar el usuario.');
+      setUsuarios((prev) => prev.filter((u) => u.userId !== usuario.userId));
+    } catch (e: unknown) {
+      setLoadError(e instanceof Error ? e.message : 'Error al eliminar usuario.');
+    } finally {
+      setRowDeleting(null);
     }
   };
 
@@ -229,17 +252,41 @@ export default function AdminUsuariosPage() {
                           {(() => {
                             const restriction = getEditRestriction(u);
                             const disabled = Boolean(restriction);
+                            const deleteDisabled =
+                              !adminMe?.isSuperAdmin ||
+                              rowDeleting === u.userId ||
+                              u.userId === adminMe.userId ||
+                              u.roles.includes('super-admin');
                             return (
                               <>
-                                <button
-                                  type="button"
-                                  onClick={() => openEditor(u)}
-                                  disabled={disabled}
-                                  title={restriction ?? 'Editar roles'}
-                                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-[#1b3a4a] hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:bg-transparent"
-                                >
-                                  Editar
-                                </button>
+                                <div className="flex justify-end gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => openEditor(u)}
+                                    disabled={disabled}
+                                    title={restriction ?? 'Editar roles'}
+                                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-[#1b3a4a] hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:bg-transparent"
+                                  >
+                                    Editar
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => void removeUser(u)}
+                                    disabled={deleteDisabled}
+                                    title={
+                                      adminMe?.isSuperAdmin
+                                        ? u.roles.includes('super-admin')
+                                          ? 'No puedes eliminar otro super-admin aquí.'
+                                          : u.userId === adminMe.userId
+                                            ? 'No puedes eliminar tu propia cuenta.'
+                                            : 'Eliminar usuario'
+                                        : 'Solo super-admin puede eliminar usuarios.'
+                                    }
+                                    className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400 disabled:hover:bg-transparent"
+                                  >
+                                    {rowDeleting === u.userId ? 'Eliminando…' : 'Eliminar'}
+                                  </button>
+                                </div>
                                 {restriction && <p className="mt-1 text-[11px] text-slate-400">{restriction}</p>}
                               </>
                             );
