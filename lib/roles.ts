@@ -92,14 +92,10 @@ export const ASSIGNABLE_ROLE_VALUES = new Set(ASSIGNABLE_ROLES.map((r) => r.valu
  * Categorías en /registro (checkboxes). Debe coincidir con valores válidos en `perfiles.rol` (text[]).
  */
 export const REGISTRO_CATEGORIAS: { value: string; label: string }[] = [
-  { value: SUPER_ADMIN_ROLE, label: 'Super administrador' },
-  { value: 'musica', label: 'Música / Alabanzas' },
-  { value: 'biblias', label: 'Biblias' },
   { value: 'devocional', label: 'Devocionales' },
-  { value: 'anuncios', label: 'Anuncios / Avisos' },
-  { value: 'agenda', label: 'Agenda / Calendario' },
-  { value: 'encargado', label: 'Encargado (solo inicio)' },
-  { value: 'visitante', label: 'Visitante / pendiente de módulos' },
+  { value: 'anuncios', label: 'Avisos (Anuncios)' },
+  { value: 'musica', label: 'Alabanzas (Música)' },
+  { value: 'agenda', label: 'Calendario (Agenda)' },
 ];
 
 export const REGISTRO_ROLE_VALUES = new Set(REGISTRO_CATEGORIAS.map((r) => r.value));

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Loader2, Lock } from 'lucide-react';
@@ -36,14 +36,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('error') === 'confirmacion') {
-      setError('El enlace de confirmación expiró o no es válido. Solicita uno nuevo o inicia sesión.');
-    }
-  }, []);
 
   const signInWithPassword = async (e: React.FormEvent) => {
     e.preventDefault();

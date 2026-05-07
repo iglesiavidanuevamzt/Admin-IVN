@@ -2,15 +2,9 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-/**
- * Intercambia `?code=` del correo de Supabase (flujo PKCE) por sesión y redirige sin 404.
- * Añade esta URL en Supabase → Authentication → URL Configuration → Redirect URLs.
- */
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const nextRaw = searchParams.get('next') ?? '/';
-  const next = nextRaw.startsWith('/') ? nextRaw : '/';
 
   if (code) {
     const cookieStore = await cookies();
@@ -35,11 +29,9 @@ export async function GET(request: Request) {
 
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
-      const fail = new URL('/login', origin);
-      fail.searchParams.set('error', 'confirmacion');
-      return NextResponse.redirect(fail);
+      return NextResponse.redirect(new URL('/login', origin));
     }
   }
 
-  return NextResponse.redirect(`${origin}${next}`);
+  return NextResponse.redirect(new URL('/', origin));
 }

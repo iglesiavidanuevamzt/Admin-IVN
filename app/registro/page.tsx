@@ -41,8 +41,7 @@ export default function RegistroPage() {
 
   const rolesForSignup = useMemo(() => Array.from(selected), [selected]);
 
-  const authCallbackUrl =
-    typeof window !== 'undefined' ? `${window.location.origin}/auth/callback?next=/` : undefined;
+  const authCallbackUrl = typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : undefined;
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,9 +81,7 @@ export default function RegistroPage() {
         return;
       }
 
-      setInfo(
-        'Te enviamos un correo de confirmación. Abre el enlace para entrar al panel; tus categorías elegidas se aplicarán al crear el perfil.'
-      );
+      setInfo('Te enviamos un correo de confirmación. Abre el enlace y entrarás directo al panel principal.');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'No se pudo completar el registro.');
     } finally {
@@ -96,10 +93,7 @@ export default function RegistroPage() {
     <div className="flex min-h-dvh flex-col items-center justify-center bg-slate-50 px-4 py-10">
       <div className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-8 shadow-xl sm:p-10">
         <h1 className="text-center font-serif text-2xl font-bold text-[#1b3a4a]">Crear cuenta</h1>
-        <p className="mt-2 text-center text-xs text-slate-500">
-          Elige una o varias categorías; se guardan en perfiles.rol como un arreglo (text[]). Si no marcas ninguna, se
-          usará visitante.
-        </p>
+        <p className="mt-2 text-center text-xs text-slate-500">Elige uno o varios módulos para tu panel principal.</p>
 
         <form onSubmit={onSubmit} className="mt-8 space-y-4">
           <div>

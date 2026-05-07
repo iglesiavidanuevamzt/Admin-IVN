@@ -27,7 +27,7 @@ function pickRoles(bodyRoles: unknown, userMetadata: Record<string, unknown> | u
 }
 
 /**
- * Crea la fila en `perfiles` si no existe. Roles: cuerpo JSON, metadatos de registro en Auth, o `visitante`.
+ * Crea la fila en `perfiles` si no existe. Roles: cuerpo JSON, metadatos de registro en Auth, o valor por defecto.
  */
 export async function POST(request: Request) {
   const supabase = await createServerSupabase();
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, created: false });
   }
 
-  const tryInsert = async (rol: string[] | string) => {
+  const tryInsert = async (rol: string[]) => {
     return admin.from('perfiles').insert({
       user_id: user.id,
       email,
@@ -79,14 +79,6 @@ export async function POST(request: Request) {
   if (insErr) {
     const { data: afterRace } = await admin.from('perfiles').select('user_id').eq('user_id', user.id).maybeSingle();
     if (afterRace) {
-      return NextResponse.json({ ok: true, created: false });
-    }
-    const retry = await tryInsert(rolesToInsert.join(','));
-    insErr = retry.error;
-  }
-  if (insErr) {
-    const { data: afterFail } = await admin.from('perfiles').select('user_id').eq('user_id', user.id).maybeSingle();
-    if (afterFail) {
       return NextResponse.json({ ok: true, created: false });
     }
     return NextResponse.json({ error: insErr.message }, { status: 400 });
