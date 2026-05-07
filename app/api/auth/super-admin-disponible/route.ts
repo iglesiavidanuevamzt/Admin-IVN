@@ -15,6 +15,18 @@ export async function GET() {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
+  const { data: flagRow, error: flagErr } = await admin
+    .from('system_flags')
+    .select('super_admin_created')
+    .eq('id', 1)
+    .maybeSingle();
+  if (!flagErr && flagRow?.super_admin_created === true) {
+    return NextResponse.json({ disponible: false }, { headers: { 'Cache-Control': 'no-store' } });
+  }
+  if (!flagErr && flagRow?.super_admin_created === false) {
+    return NextResponse.json({ disponible: true }, { headers: { 'Cache-Control': 'no-store' } });
+  }
+
   const { data, error } = await admin
     .from('perfiles')
     .select('user_id')
