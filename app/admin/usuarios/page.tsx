@@ -112,8 +112,15 @@ export default function AdminUsuariosPage() {
 
   const removeUser = async (usuario: UsuarioRow) => {
     if (!adminMe?.isSuperAdmin) return;
-    const ok = window.confirm(`¿Eliminar la cuenta de ${usuario.email || usuario.userId}?\nEsta acción no se puede deshacer.`);
+    const identifier = (usuario.email || usuario.userId).trim();
+    const ok = window.confirm(`¿Eliminar la cuenta de ${identifier}?\nEsta acción no se puede deshacer.`);
     if (!ok) return;
+    const typed = window.prompt(`Confirmación final: escribe exactamente "${identifier}" para eliminar este usuario.`);
+    if (typed === null) return;
+    if (typed.trim() !== identifier) {
+      setLoadError('Confirmación inválida. No se eliminó el usuario.');
+      return;
+    }
     setRowDeleting(usuario.userId);
     setLoadError(null);
     try {
