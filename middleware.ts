@@ -13,9 +13,10 @@ export const config = {
      * - favicon.ico, icons, manifest.json, sw.js (archivos estáticos)
      * - Imágenes (svg, png, jpg, etc.)
      * - login, registro (acceso público)
+     * - auth/callback (confirmación de correo Supabase)
      * - set-password (página pública para invitados)
      */
-    '/((?!_next/static|_next/image|favicon.ico|icons|manifest.json|sw.js|login|registro|set-password|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|json)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|icons|manifest.json|sw.js|login|registro|auth/callback|set-password|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|json)$).*)',
     '/',
   ],
 };

@@ -1,13 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Loader2, UserPlus } from 'lucide-react';
 import { supabase } from '@/lib/supabase-browser';
+import { REGISTRO_CATEGORIAS } from '@/lib/roles';
 
-async function bootstrapPerfilFromClient(): Promise<{ ok: boolean; error?: string }> {
-  const res = await fetch('/api/auth/bootstrap-perfil', { method: 'POST' });
+async function bootstrapPerfilFromClient(roles: string[]): Promise<{ ok: boolean; error?: string }> {
+  const res = await fetch('/api/auth/bootstrap-perfil', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ roles }),
+  });
   const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
   if (!res.ok) {
     return { ok: false, error: body.error ?? 'No se pudo crear el perfil.' };
@@ -20,9 +25,24 @@ export default function RegistroPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+
+  const toggle = useCallback((value: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(value)) next.delete(value);
+      else next.add(value);
+      return next;
+    });
+  }, []);
+
+  const rolesForSignup = useMemo(() => Array.from(selected), [selected]);
+
+  const authCallbackUrl =
+    typeof window !== 'undefined' ? `${window.location.origin}/auth/callback?next=/` : undefined;
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,19 +59,20 @@ export default function RegistroPage() {
 
     setLoading(true);
     try {
-      const redirectTo =
-        typeof window !== 'undefined' ? `${window.location.origin}/` : undefined;
       const { data, error: signErr } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
-          emailRedirectTo: redirectTo,
+          emailRedirectTo: authCallbackUrl,
+          data: {
+            registration_roles: rolesForSignup,
+          },
         },
       });
       if (signErr) throw signErr;
 
       if (data.session) {
-        const boot = await bootstrapPerfilFromClient();
+        const boot = await bootstrapPerfilFromClient(rolesForSignup);
         if (!boot.ok) {
           setError(boot.error ?? 'Cuenta creada pero no se pudo preparar tu perfil. Contacta al administrador.');
           return;
@@ -62,7 +83,7 @@ export default function RegistroPage() {
       }
 
       setInfo(
-        'Te enviamos un correo de confirmación. Cuando confirmes, podrás entrar con tu correo y contraseña; tu perfil se creará al iniciar sesión.'
+        'Te enviamos un correo de confirmación. Abre el enlace para entrar al panel; tus categorías elegidas se aplicarán al crear el perfil.'
       );
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'No se pudo completar el registro.');
@@ -76,7 +97,8 @@ export default function RegistroPage() {
       <div className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-8 shadow-xl sm:p-10">
         <h1 className="text-center font-serif text-2xl font-bold text-[#1b3a4a]">Crear cuenta</h1>
         <p className="mt-2 text-center text-xs text-slate-500">
-          Admin IVN — Registro abierto. Tras registrarte tendrás acceso de visitante hasta que un administrador amplíe tus permisos.
+          Elige una o varias categorías; se guardan en perfiles.rol como un arreglo (text[]). Si no marcas ninguna, se
+          usará visitante.
         </p>
 
         <form onSubmit={onSubmit} className="mt-8 space-y-4">
@@ -133,6 +155,29 @@ export default function RegistroPage() {
               minLength={6}
             />
           </div>
+
+          <fieldset className="rounded-xl border border-slate-200 p-4">
+            <legend className="px-1 text-[10px] font-black uppercase tracking-widest text-slate-500">
+              Categorías / módulos
+            </legend>
+            <ul className="mt-2 max-h-52 space-y-2 overflow-y-auto text-sm">
+              {REGISTRO_CATEGORIAS.map((cat) => (
+                <li key={cat.value} className="flex items-start gap-2">
+                  <input
+                    id={`cat-${cat.value}`}
+                    type="checkbox"
+                    checked={selected.has(cat.value)}
+                    onChange={() => toggle(cat.value)}
+                    className="mt-1 rounded border-slate-300"
+                  />
+                  <label htmlFor={`cat-${cat.value}`} className="cursor-pointer text-slate-700">
+                    {cat.label}
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </fieldset>
+
           {error && <p className="text-center text-sm text-red-600">{error}</p>}
           {info && <p className="text-center text-sm text-[#1b3a4a]">{info}</p>}
           <button

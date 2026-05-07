@@ -31,7 +31,8 @@ export async function updateSession(request: NextRequest) {
   const isLogin = path === '/login' || path.startsWith('/login/');
   const isRegistro = path === '/registro' || path.startsWith('/registro/');
   const isSetPassword = path === '/set-password' || path.startsWith('/set-password/');
-  const isPublicAuth = isLogin || isRegistro || isSetPassword;
+  const isAuthCallback = path === '/auth/callback' || path.startsWith('/auth/callback/');
+  const isPublicAuth = isLogin || isRegistro || isSetPassword || isAuthCallback;
 
   if (!user && !isPublicAuth) {
     const url = request.nextUrl.clone();

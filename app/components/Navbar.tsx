@@ -74,7 +74,7 @@ export const Navbar = ({ currentScreen, onNavigate, showUserManagement }: Navbar
         <Link
           href="/perfil"
           className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white/80 transition-all hover:bg-white/20 hover:text-white"
-          title="Perfil y passkeys"
+          title="Perfil"
         >
           <User className="h-5 w-5" />
         </Link>

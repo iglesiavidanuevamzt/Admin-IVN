@@ -21,7 +21,7 @@ export const HomeScreen = ({
   const hasRole = (...values: string[]) => values.some((v) => roles.includes(v));
   const isSuperAdmin = roles.includes('super-admin');
   const pendingVisitante =
-    roles.includes('visitante') &&
+    (roles.includes('visitante') || roles.includes('biblias')) &&
     !isSuperAdmin &&
     !hasRole('musica', 'devocional', 'devocionales', 'anuncios', 'avisos', 'agenda', 'calendario', 'encargado');
   const cards = [

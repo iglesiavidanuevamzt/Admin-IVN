@@ -28,6 +28,8 @@ const ROLE_SCREENS: Record<string, ReadonlySet<Screen>> = {
   encargado: new Set(['home']),
   /** Cuenta recién registrada: solo inicio hasta que un admin asigne roles. */
   visitante: new Set(['home']),
+  /** Módulo biblias: por ahora mismo alcance que visitante en UI; el rol queda en BD para el administrador. */
+  biblias: new Set(['home']),
 };
 
 function normalizeRole(role: string): string {
@@ -76,13 +78,31 @@ export function isSuperAdmin(rolesInput: string | string[] | null | undefined): 
 export const ASSIGNABLE_ROLES: { value: string; label: string }[] = [
   { value: SUPER_ADMIN_ROLE, label: 'Super administrador' },
   { value: 'musica', label: 'Música / Alabanzas' },
+  { value: 'biblias', label: 'Biblias' },
   { value: 'devocional', label: 'Devocionales' },
   { value: 'anuncios', label: 'Anuncios / Avisos' },
   { value: 'agenda', label: 'Agenda / Calendario' },
   { value: 'encargado', label: 'Encargado (solo inicio)' },
+  { value: 'visitante', label: 'Visitante (solo inicio)' },
 ];
 
 export const ASSIGNABLE_ROLE_VALUES = new Set(ASSIGNABLE_ROLES.map((r) => r.value));
+
+/**
+ * Categorías en /registro (checkboxes). Debe coincidir con valores válidos en `perfiles.rol` (text[]).
+ */
+export const REGISTRO_CATEGORIAS: { value: string; label: string }[] = [
+  { value: SUPER_ADMIN_ROLE, label: 'Super administrador' },
+  { value: 'musica', label: 'Música / Alabanzas' },
+  { value: 'biblias', label: 'Biblias' },
+  { value: 'devocional', label: 'Devocionales' },
+  { value: 'anuncios', label: 'Anuncios / Avisos' },
+  { value: 'agenda', label: 'Agenda / Calendario' },
+  { value: 'encargado', label: 'Encargado (solo inicio)' },
+  { value: 'visitante', label: 'Visitante / pendiente de módulos' },
+];
+
+export const REGISTRO_ROLE_VALUES = new Set(REGISTRO_CATEGORIAS.map((r) => r.value));
 
 export type HomeCard = { id: Screen; title: string; iconPath: string };
 
