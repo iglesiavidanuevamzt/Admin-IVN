@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Music, AlignLeft, ArrowLeft, Send, 
@@ -9,6 +9,15 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { FormState } from '../../types';
+
+type AlabanzaItem = {
+  id: string;
+  titulo: string;
+  letra: string;
+  autor?: string | null;
+  creado_el?: string;
+  created_at?: string;
+};
 
 interface PraisesFormProps {
   form: FormState;
@@ -21,7 +30,7 @@ interface PraisesFormProps {
 export const PraisesForm = ({ form, onChange, onLoadAlabanza, onResetAlabanza, onBack }: PraisesFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [historial, setHistorial] = useState<any[]>([]);
+  const [historial, setHistorial] = useState<AlabanzaItem[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -34,8 +43,17 @@ export const PraisesForm = ({ form, onChange, onLoadAlabanza, onResetAlabanza, o
     show: false, id: null
   });
   const editingRecordIdRef = useRef<string | null>(null);
+  const [lastSavedId, setLastSavedId] = useState<string | null>(null);
 
   const getRecordId = () => editingRecordIdRef.current ?? editingId ?? form.id ?? null;
+
+  const sortRecientesPrimero = <T extends { creado_el?: string; created_at?: string }>(items: T[]) =>
+    [...items].sort((a, b) => {
+      const ta = String(a.creado_el ?? a.created_at ?? '');
+      const tb = String(b.creado_el ?? b.created_at ?? '');
+      if (ta && tb) return tb.localeCompare(ta);
+      return 0;
+    });
 
   useEffect(() => {
     if (form.id) {
@@ -45,24 +63,52 @@ export const PraisesForm = ({ form, onChange, onLoadAlabanza, onResetAlabanza, o
   }, [form.id]);
 
   const fetchHistorial = async () => {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('alabanzas')
       .select('*')
-      .order('titulo', { ascending: true });
+      .order('creado_el', { ascending: false });
+
+    if (error) {
+      const retry = await supabase
+        .from('alabanzas')
+        .select('*')
+        .order('created_at', { ascending: false });
+      data = retry.data;
+      error = retry.error;
+    }
+
+    if (error) {
+      const fallback = await supabase.from('alabanzas').select('*');
+      data = fallback.data;
+      error = fallback.error;
+    }
+
     if (error) {
       setErrorMessage('No se pudo cargar la biblioteca: ' + error.message);
       return;
     }
-    if (data) setHistorial(data);
+    if (data) setHistorial(sortRecientesPrimero(data as AlabanzaItem[]));
   };
 
   useEffect(() => {
     fetchHistorial();
   }, []);
 
-  const filteredAlabanzas = historial.filter(item => 
-    item.titulo?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredAlabanzas = useMemo(() => {
+    const base = searchTerm.trim()
+      ? historial.filter((item) =>
+          item.titulo?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      : historial;
+
+    const sorted = sortRecientesPrimero(base);
+
+    if (!lastSavedId || searchTerm.trim()) return sorted;
+
+    const pinned = sorted.find((item) => item.id === lastSavedId);
+    if (!pinned) return sorted;
+    return [pinned, ...sorted.filter((item) => item.id !== lastSavedId)];
+  }, [historial, searchTerm, lastSavedId]);
 
   const resetLocalForm = () => {
     editingRecordIdRef.current = null;
@@ -139,13 +185,21 @@ export const PraisesForm = ({ form, onChange, onLoadAlabanza, onResetAlabanza, o
         saved = await saveAlabanzaViaApi('POST', payload);
       }
 
+      const savedId = String(saved.id);
+      setLastSavedId(savedId);
+
       setHistorial((prev) => {
         if (isEditing) {
-          return prev.map((item) => (item.id === saved.id ? { ...item, ...saved } : item));
+          return sortRecientesPrimero(
+            prev.map((item) =>
+              item.id === saved.id ? ({ ...item, ...saved } as AlabanzaItem) : item
+            )
+          );
         }
-        return [...prev, saved].sort((a, b) =>
-          String(a.titulo ?? '').localeCompare(String(b.titulo ?? ''), 'es')
-        );
+        return sortRecientesPrimero([
+          saved as AlabanzaItem,
+          ...prev.filter((item) => item.id !== saved.id),
+        ]);
       });
 
       setShowSuccessModal(true);
