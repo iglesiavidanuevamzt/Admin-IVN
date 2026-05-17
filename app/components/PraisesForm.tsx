@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Music, AlignLeft, ArrowLeft, Send, 
@@ -13,10 +13,12 @@ import { FormState } from '../../types';
 interface PraisesFormProps {
   form: FormState;
   onChange: (field: keyof FormState, value: any) => void;
+  onLoadAlabanza?: (item: { id: string; titulo?: string; letra?: string; autor?: string | null }) => void;
+  onResetAlabanza?: () => void;
   onBack: () => void;
 }
 
-export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
+export const PraisesForm = ({ form, onChange, onLoadAlabanza, onResetAlabanza, onBack }: PraisesFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [historial, setHistorial] = useState<any[]>([]);
@@ -26,16 +28,31 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
   // Estados para el flujo de comunicación visual
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showValidationModal, setShowValidationModal] = useState(false);
-  const [showDuplicateModal, setShowDuplicateModal] = useState(false); // <--- NUEVO
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ show: boolean; id: string | null }>({
     show: false, id: null
   });
+  const editingRecordIdRef = useRef<string | null>(null);
+
+  const getRecordId = () => editingRecordIdRef.current ?? editingId ?? form.id ?? null;
+
+  useEffect(() => {
+    if (form.id) {
+      setEditingId(form.id);
+      editingRecordIdRef.current = form.id;
+    }
+  }, [form.id]);
 
   const fetchHistorial = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('alabanzas')
       .select('*')
       .order('titulo', { ascending: true });
+    if (error) {
+      setErrorMessage('No se pudo cargar la biblioteca: ' + error.message);
+      return;
+    }
     if (data) setHistorial(data);
   };
 
@@ -48,10 +65,32 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
   );
 
   const resetLocalForm = () => {
+    editingRecordIdRef.current = null;
     setEditingId(null);
-    onChange('titulo' as keyof FormState, '');
-    onChange('autor' as keyof FormState, '');
-    onChange('letra' as keyof FormState, '');
+    if (onResetAlabanza) {
+      onResetAlabanza();
+    } else {
+      onChange('id' as keyof FormState, null);
+      onChange('titulo' as keyof FormState, '');
+      onChange('autor' as keyof FormState, '');
+      onChange('letra' as keyof FormState, '');
+    }
+  };
+
+  const saveAlabanzaViaApi = async (method: 'PATCH' | 'POST', body: Record<string, unknown>) => {
+    const res = await fetch('/api/admin/alabanzas', {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const json = (await res.json()) as { error?: string; alabanza?: Record<string, unknown> };
+    if (!res.ok) {
+      throw new Error(json.error || 'No se pudo guardar la alabanza.');
+    }
+    if (!json.alabanza?.id) {
+      throw new Error('La base de datos no devolvió la alabanza guardada.');
+    }
+    return json.alabanza;
   };
 
   const handlePublish = async () => {
@@ -67,9 +106,11 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
     const tituloActual = normalizar(form.titulo);
     const letraActual = normalizar(form.letra);
 
+    const recordId = getRecordId();
+    const isEditing = Boolean(recordId);
+
     const esRepetido = historial.some(item => {
-      // Ignorar el mismo registro si estamos editando
-      if (item.id === editingId) return false;
+      if (item.id === recordId) return false;
       
       const tituloIgual = normalizar(item.titulo) === tituloActual;
       const letraIgual = normalizar(item.letra) === letraActual;
@@ -90,20 +131,29 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
         letra: form.letra,
         autor: autorTrim || null,
       };
-      
-      if (editingId) {
-        const { error } = await supabase.from('alabanzas').update(payload).eq('id', editingId);
-        if (error) throw error;
+
+      let saved: Record<string, unknown>;
+      if (isEditing) {
+        saved = await saveAlabanzaViaApi('PATCH', { id: recordId, ...payload });
       } else {
-        const { error } = await supabase.from('alabanzas').insert([payload]);
-        if (error) throw error;
+        saved = await saveAlabanzaViaApi('POST', payload);
       }
+
+      setHistorial((prev) => {
+        if (isEditing) {
+          return prev.map((item) => (item.id === saved.id ? { ...item, ...saved } : item));
+        }
+        return [...prev, saved].sort((a, b) =>
+          String(a.titulo ?? '').localeCompare(String(b.titulo ?? ''), 'es')
+        );
+      });
 
       setShowSuccessModal(true);
       resetLocalForm();
-      fetchHistorial();
-    } catch (error) {
-      console.error(error);
+      await fetchHistorial();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error desconocido';
+      setErrorMessage('Error al guardar la alabanza: ' + msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -122,11 +172,22 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
     }
   };
 
-  const startEditing = (item: any) => {
+  const startEditing = (item: {
+    id: string;
+    titulo?: string;
+    letra?: string;
+    autor?: string | null;
+  }) => {
+    editingRecordIdRef.current = item.id;
     setEditingId(item.id);
-    onChange('titulo' as keyof FormState, item.titulo);
-    onChange('autor' as keyof FormState, item.autor ?? '');
-    onChange('letra' as keyof FormState, item.letra);
+    if (onLoadAlabanza) {
+      onLoadAlabanza(item);
+    } else {
+      onChange('id' as keyof FormState, item.id);
+      onChange('titulo' as keyof FormState, item.titulo ?? '');
+      onChange('autor' as keyof FormState, item.autor ?? '');
+      onChange('letra' as keyof FormState, item.letra ?? '');
+    }
     setShowHistory(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -169,6 +230,31 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL DE ERROR */}
+      <AnimatePresence>
+        {errorMessage && (
+          <motion.div className="fixed inset-0 z-[260] flex items-center justify-center p-4 bg-red-500/20 backdrop-blur-sm">
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 20, opacity: 0 }}
+              className="w-full max-w-sm rounded-[2.5rem] bg-white p-8 text-center shadow-2xl"
+            >
+              <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-red-500" />
+              <h3 className="mb-2 text-lg font-black uppercase tracking-tighter text-[#1b3a4a]">Algo salió mal</h3>
+              <p className="mb-6 text-xs leading-relaxed text-slate-500">{errorMessage}</p>
+              <button
+                type="button"
+                onClick={() => setErrorMessage(null)}
+                className="w-full rounded-2xl bg-slate-800 py-4 text-[10px] font-bold uppercase tracking-widest text-white"
+              >
+                CERRAR
+              </button>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
 
@@ -245,10 +331,17 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
 
       {/* FORMULARIO */}
       <div className="relative space-y-8 rounded-[2.5rem] border border-white/10 bg-[#85A3A5] p-6 pb-8 pt-14 shadow-2xl sm:p-10 sm:pb-10 sm:pt-16">
+        {getRecordId() && (
+          <div className="rounded-2xl border border-amber-400/40 bg-amber-500/15 px-4 py-3 text-center">
+            <p className="text-[10px] font-black uppercase tracking-widest text-amber-100">
+              Modo edición — al guardar se actualiza la alabanza existente
+            </p>
+          </div>
+        )}
         <button
           type="button"
           onClick={resetLocalForm}
-          className="absolute right-4 top-4 flex items-center gap-1.5 rounded-xl border border-white/30 bg-white/15 px-2.5 py-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:bg-white/25 active:scale-95 sm:right-6 sm:top-6 sm:gap-2 sm:px-3"
+          className="absolute right-4 top-4 z-10 flex items-center gap-1.5 rounded-xl border border-white/30 bg-white/15 px-2.5 py-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:bg-white/25 active:scale-95 sm:right-6 sm:top-6 sm:gap-2 sm:px-3"
           aria-label="Limpiar formulario"
         >
           <Trash2 className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
@@ -296,9 +389,9 @@ export const PraisesForm = ({ form, onChange, onBack }: PraisesFormProps) => {
           className="w-full max-w-sm bg-[#1b3a4a] text-white font-black py-6 rounded-[2rem] shadow-2xl flex items-center justify-center gap-4 active:scale-95 transition-all disabled:opacity-50 uppercase tracking-widest"
         >
           {isSubmitting ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6" />}
-          {isSubmitting ? 'GUARDANDO...' : editingId ? 'GUARDAR CAMBIOS' : 'PUBLICAR ALABANZA'}
+          {isSubmitting ? 'GUARDANDO...' : getRecordId() ? 'GUARDAR CAMBIOS' : 'PUBLICAR ALABANZA'}
         </button>
-        {editingId && (
+        {getRecordId() && (
           <button onClick={resetLocalForm} className="text-[#1b3a4a] text-xs font-black uppercase tracking-widest opacity-70 hover:opacity-100 underline">✕ Cancelar Edición</button>
         )}
       </div>

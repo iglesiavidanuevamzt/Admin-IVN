@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   BookOpen, Calendar, ArrowLeft, Send, 
@@ -13,10 +13,12 @@ import { FormState } from '../../types';
 interface DevocionalFormProps {
   form: FormState;
   onChange: (field: keyof FormState, value: any) => void;
+  onLoadDevocional?: (item: { id: string; fecha?: string; reflexion?: string }) => void;
+  onResetDevocional?: () => void;
   onBack: () => void;
 }
 
-export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) => {
+export const DevocionalForm = ({ form, onChange, onLoadDevocional, onResetDevocional, onBack }: DevocionalFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [historial, setHistorial] = useState<any[]>([]);
@@ -27,17 +29,29 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showValidationModal, setShowValidationModal] = useState(false);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
-  
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const [confirmDelete, setConfirmDelete] = useState<{ show: boolean; id: string | null }>({
     show: false, id: null
   });
 
+  const editingRecordIdRef = useRef<string | null>(null);
+
+  const getRecordId = () => editingRecordIdRef.current ?? editingId ?? form.id ?? null;
+
   useEffect(() => {
-    if (!editingId && !form.fechaDevocional) {
+    if (form.id) {
+      setEditingId(form.id);
+      editingRecordIdRef.current = form.id;
+    }
+  }, [form.id]);
+
+  useEffect(() => {
+    if (!getRecordId() && !form.fechaDevocional) {
       const today = new Date().toISOString().split('T')[0];
       onChange('fechaDevocional', today);
     }
-  }, [editingId, form.fechaDevocional, onChange]);
+  }, [form.fechaDevocional, form.id, onChange]);
 
   const fetchHistorial = async () => {
     try {
@@ -47,9 +61,26 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
         .order('fecha', { ascending: false });
       if (error) throw error;
       if (data) setHistorial(data);
-    } catch (error: any) {
-      console.error("Error historial:", error.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error desconocido';
+      setErrorMessage('No se pudo cargar el historial: ' + msg);
     }
+  };
+
+  const saveDevocionalViaApi = async (method: 'PATCH' | 'POST', body: Record<string, unknown>) => {
+    const res = await fetch('/api/admin/devocionales', {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const json = (await res.json()) as { error?: string; devocional?: Record<string, unknown> };
+    if (!res.ok) {
+      throw new Error(json.error || 'No se pudo guardar el devocional.');
+    }
+    if (!json.devocional?.id) {
+      throw new Error('La base de datos no devolvió el devocional guardado.');
+    }
+    return json.devocional;
   };
 
   useEffect(() => { fetchHistorial(); }, []);
@@ -68,8 +99,11 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
     const normalizar = (t: string) => t.replace(/\s+/g, ' ').trim().toLowerCase();
     const contenidoActual = normalizar(form.reflexion || '');
     
-    const esRepetido = historial.some(item => 
-      normalizar(item.reflexion) === contenidoActual && item.id !== editingId
+    const recordId = getRecordId();
+    const isEditing = Boolean(recordId);
+
+    const esRepetido = historial.some(
+      (item) => normalizar(item.reflexion) === contenidoActual && item.id !== recordId
     );
 
     if (esRepetido) {
@@ -80,21 +114,29 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
     setIsSubmitting(true);
     try {
       const payload = { fecha: form.fechaDevocional, reflexion: form.reflexion };
-      
-      if (editingId) {
-        const { error } = await supabase.from('devocionales').update(payload).eq('id', editingId);
-        if (error) throw error;
+
+      let saved: Record<string, unknown>;
+      if (isEditing) {
+        saved = await saveDevocionalViaApi('PATCH', { id: recordId, ...payload });
       } else {
-        const { error } = await supabase.from('devocionales').insert([payload]);
-        if (error) throw error;
+        saved = await saveDevocionalViaApi('POST', payload);
       }
 
+      setHistorial((prev) => {
+        if (isEditing) {
+          return prev.map((item) => (item.id === saved.id ? { ...item, ...saved } : item));
+        }
+        return [saved, ...prev].sort((a, b) =>
+          String(b.fecha ?? '').localeCompare(String(a.fecha ?? ''))
+        );
+      });
+
       setShowSuccessModal(true);
-      setEditingId(null);
-      onChange('reflexion', '');
-      fetchHistorial();
-    } catch (error: any) {
-      console.error("Error:", error.message);
+      resetFormToInitial();
+      await fetchHistorial();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error desconocido';
+      setErrorMessage('Error al guardar el devocional: ' + msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -112,19 +154,31 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
     }
   };
 
-  const startEditing = (item: any) => {
+  const startEditing = (item: { id: string; fecha?: string; reflexion?: string }) => {
+    editingRecordIdRef.current = item.id;
     setEditingId(item.id);
-    onChange('fechaDevocional', item.fecha);
-    onChange('reflexion', item.reflexion);
+    if (onLoadDevocional) {
+      onLoadDevocional(item);
+    } else {
+      onChange('id' as keyof FormState, item.id);
+      onChange('fechaDevocional', item.fecha ?? '');
+      onChange('reflexion', item.reflexion ?? '');
+    }
     setShowHistory(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const resetFormToInitial = () => {
-    const hoy = new Date().toISOString().split('T')[0];
+    editingRecordIdRef.current = null;
     setEditingId(null);
-    onChange('fechaDevocional', hoy);
-    onChange('reflexion', '');
+    if (onResetDevocional) {
+      onResetDevocional();
+    } else {
+      const hoy = new Date().toISOString().split('T')[0];
+      onChange('id' as keyof FormState, null);
+      onChange('fechaDevocional', hoy);
+      onChange('reflexion', '');
+    }
   };
 
   return (
@@ -161,6 +215,30 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
                   Corregir
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {errorMessage && (
+          <div className="fixed inset-0 z-[260] flex items-center justify-center p-4 bg-red-500/20 backdrop-blur-sm">
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 20, opacity: 0 }}
+              className="w-full max-w-sm rounded-[2.5rem] bg-white p-8 text-center shadow-2xl"
+            >
+              <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-red-500" />
+              <h3 className="mb-2 text-lg font-black uppercase tracking-tighter text-[#1b3a4a]">Algo salió mal</h3>
+              <p className="mb-6 text-xs leading-relaxed text-slate-500">{errorMessage}</p>
+              <button
+                type="button"
+                onClick={() => setErrorMessage(null)}
+                className="w-full rounded-2xl bg-slate-800 py-4 text-[10px] font-bold uppercase tracking-widest text-white"
+              >
+                CERRAR
+              </button>
             </motion.div>
           </div>
         )}
@@ -233,10 +311,17 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
 
       {/* FORMULARIO DE ENTRADA */}
       <div className="relative box-border flex w-full flex-col space-y-6 rounded-[2.5rem] border border-white/10 bg-[#85A3A5] p-5 pb-6 pt-12 text-left shadow-2xl sm:p-8 sm:pb-8 sm:pt-14">
+        {getRecordId() && (
+          <div className="rounded-2xl border border-amber-400/40 bg-amber-500/15 px-4 py-3 text-center">
+            <p className="text-[10px] font-black uppercase tracking-widest text-amber-100">
+              Modo edición — al guardar se actualiza el devocional existente
+            </p>
+          </div>
+        )}
         <button
           type="button"
           onClick={resetFormToInitial}
-          className="absolute right-4 top-4 flex items-center gap-1.5 rounded-xl border border-white/30 bg-white/15 px-2.5 py-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:bg-white/25 active:scale-95 sm:right-5 sm:top-5 sm:gap-2 sm:px-3"
+          className="absolute right-4 top-4 z-10 flex items-center gap-1.5 rounded-xl border border-white/30 bg-white/15 px-2.5 py-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:bg-white/25 active:scale-95 sm:right-5 sm:top-5 sm:gap-2 sm:px-3"
           aria-label="Limpiar formulario"
         >
           <Trash2 className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
@@ -275,15 +360,12 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
           className="w-full max-w-sm bg-[#1b3a4a] text-white font-black py-6 rounded-[2rem] shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-50 uppercase tracking-widest"
         >
           {isSubmitting ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6" />}
-          {isSubmitting ? 'PROCESANDO...' : editingId ? 'GUARDAR MODIFICACIÓN' : 'PUBLICAR DEVOCIONAL'}
+          {isSubmitting ? 'PROCESANDO...' : getRecordId() ? 'GUARDAR MODIFICACIÓN' : 'PUBLICAR DEVOCIONAL'}
         </button>
-        {editingId && (
+        {getRecordId() && (
           <button
             type="button"
-            onClick={() => {
-              setEditingId(null);
-              onChange('reflexion', '');
-            }}
+            onClick={resetFormToInitial}
             className="text-[#1b3a4a] text-xs font-black uppercase tracking-tighter underline opacity-70 transition-all hover:opacity-100"
           >
             ✕ Cancelar Edición

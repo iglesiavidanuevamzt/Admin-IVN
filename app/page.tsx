@@ -85,6 +85,49 @@ export default function AdminApp() {
     }));
   };
 
+  const loadAlabanzaToForm = (item: {
+    id: string;
+    titulo?: string;
+    letra?: string;
+    autor?: string | null;
+  }) => {
+    setForm((prev) => ({
+      ...prev,
+      id: item.id,
+      titulo: item.titulo ?? '',
+      letra: item.letra ?? '',
+      autor: item.autor ?? '',
+    }));
+  };
+
+  const resetAlabanzaForm = () => {
+    setForm((prev) => ({
+      ...prev,
+      id: null,
+      titulo: '',
+      letra: '',
+      autor: '',
+    }));
+  };
+
+  const loadDevocionalToForm = (item: { id: string; fecha?: string; reflexion?: string }) => {
+    setForm((prev) => ({
+      ...prev,
+      id: item.id,
+      fechaDevocional: item.fecha ?? getFechaHoy(),
+      reflexion: item.reflexion ?? '',
+    }));
+  };
+
+  const resetDevocionalForm = () => {
+    setForm((prev) => ({
+      ...prev,
+      id: null,
+      fechaDevocional: getFechaHoy(),
+      reflexion: '',
+    }));
+  };
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -134,10 +177,11 @@ export default function AdminApp() {
     if (screen === 'avisos' && currentScreen === 'home') {
       resetAvisoForm();
     }
-    if (screen === 'alabanzas') {
-      setForm(prev => ({
-        ...prev, id: null, titulo: '', letra: '', autor: ''
-      }));
+    if (screen === 'alabanzas' && currentScreen === 'home') {
+      resetAlabanzaForm();
+    }
+    if (screen === 'devocional' && currentScreen === 'home') {
+      resetDevocionalForm();
     }
     setCurrentScreen(screen);
   };
@@ -175,11 +219,23 @@ export default function AdminApp() {
         )}
         
         {currentScreen === 'devocional' && (
-          <DevocionalForm form={form} onChange={updateForm} onBack={() => setCurrentScreen('home')} />
+          <DevocionalForm
+            form={form}
+            onChange={updateForm}
+            onLoadDevocional={loadDevocionalToForm}
+            onResetDevocional={resetDevocionalForm}
+            onBack={() => setCurrentScreen('home')}
+          />
         )}
 
         {currentScreen === 'alabanzas' && (
-          <PraisesForm form={form} onChange={updateForm} onBack={() => setCurrentScreen('home')} />
+          <PraisesForm
+            form={form}
+            onChange={updateForm}
+            onLoadAlabanza={loadAlabanzaToForm}
+            onResetAlabanza={resetAlabanzaForm}
+            onBack={() => setCurrentScreen('home')}
+          />
         )}
         
         {/*{currentScreen === 'agenda' && (
