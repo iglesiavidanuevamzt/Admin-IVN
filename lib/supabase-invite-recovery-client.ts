@@ -23,6 +23,8 @@ export function createInviteRecoverySupabaseClient() {
         detectSessionInUrl: true,
         persistSession: true,
         autoRefreshToken: true,
+        /** Evita colisión con el cliente PKCE de login (`supabase-browser`). */
+        storageKey: 'ivn-invite-recovery-auth',
       },
     }
   );

@@ -4,25 +4,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2, KeyRound, Loader2 } from 'lucide-react';
+import { establishInviteSessionFromUrl } from '@/lib/auth/establish-invite-session';
+import { parseAuthParamsFromUrl, urlLooksLikeAuthRedirect } from '@/lib/auth/parse-auth-url';
 import { createInviteRecoverySupabaseClient } from '@/lib/supabase-invite-recovery-client';
 
 const MIN_LENGTH = 8;
-
-/** Indica si la URL parece un retorno de Auth (hash implícito o código PKCE). */
-function urlLooksLikeAuthRedirect(): boolean {
-  if (typeof window === 'undefined') return false;
-  const { hash, search } = window.location;
-  const h = hash.toLowerCase();
-  return (
-    h.includes('access_token') ||
-    h.includes('type=invite') ||
-    h.includes('type%3dinvite') ||
-    h.includes('type=recovery') ||
-    h.includes('type%3drecovery') ||
-    h.includes('error=') ||
-    search.includes('code=')
-  );
-}
 
 export default function SetPasswordPage() {
   const router = useRouter();
@@ -35,35 +21,24 @@ export default function SetPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const path = window.location.pathname;
+    if (path !== '/set-password' && path.startsWith('/set-password')) {
+      window.location.replace(`/set-password${window.location.search}${window.location.hash}`);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
 
-    const applySession = (session: import('@supabase/supabase-js').Session | null) => {
+    const finish = (session: import('@supabase/supabase-js').Session | null, errMsg?: string) => {
       if (cancelled) return;
       setHasSession(!!session);
+      if (!session && errMsg) setLinkError(errMsg);
       setChecking(false);
-    };
-
-    const readSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      return session;
-    };
-
-    /** Respaldo si detectSessionInUrl no aplicó (p. ej. hidratación / orden de efectos). */
-    const trySessionFromHash = async (): Promise<import('@supabase/supabase-js').Session | null> => {
-      if (typeof window === 'undefined') return null;
-      const raw = window.location.hash.replace(/^#/, '');
-      if (!raw) return null;
-      const params = new URLSearchParams(raw);
-      const access_token = params.get('access_token');
-      const refresh_token = params.get('refresh_token');
-      if (!access_token || !refresh_token) return null;
-      const { data, error } = await supabase.auth.setSession({ access_token, refresh_token });
-      if (error) return null;
-      return data.session;
     };
 
     const { data: subWrap } = supabase.auth.onAuthStateChange((event, session) => {
@@ -76,36 +51,44 @@ export default function SetPasswordPage() {
           event === 'TOKEN_REFRESHED' ||
           event === 'USER_UPDATED')
       ) {
-        applySession(session);
+        finish(session);
       }
     });
 
     void (async () => {
-      let session = await readSession();
-      if (session) {
-        applySession(session);
+      const params = parseAuthParamsFromUrl();
+      if (params.error) {
+        finish(null, params.error_description ?? params.error);
+        return;
+      }
+
+      const first = await establishInviteSessionFromUrl(supabase);
+      if (first.session) {
+        finish(first.session);
         return;
       }
 
       if (urlLooksLikeAuthRedirect()) {
-        session = await trySessionFromHash();
-        if (session) {
-          applySession(session);
-          return;
-        }
-        const delays = [0, 80, 200, 450, 900, 1600, 2600];
+        const delays = [80, 200, 450, 900, 1600, 2600];
         for (const ms of delays) {
           if (cancelled) return;
-          if (ms > 0) await new Promise((r) => setTimeout(r, ms));
-          session = await readSession();
+          await new Promise((r) => setTimeout(r, ms));
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
           if (session) {
-            applySession(session);
+            finish(session);
             return;
           }
         }
+        finish(null, first.errorMessage);
+        return;
       }
 
-      applySession(await readSession());
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      finish(session, session ? undefined : first.errorMessage);
     })();
 
     return () => {
@@ -164,8 +147,10 @@ export default function SetPasswordPage() {
         ) : !hasSession ? (
           <div className="mt-8 rounded-xl border border-amber-100 bg-amber-50/80 px-4 py-3 text-center text-sm text-amber-900">
             <p>No hay una sesión de invitación activa. El enlace puede haber expirado o ya se usó.</p>
+            {linkError && <p className="mt-2 text-[11px] font-medium text-amber-950">{linkError}</p>}
             <p className="mt-2 text-[11px] text-amber-800/90">
-              Abre el enlace en este mismo navegador y evita previsualizar el correo dentro de apps que no pasan el fragmento (#) de la URL.
+              Abre el enlace con el botón del correo en Chrome o Safari (no vista previa de Gmail). La URL debe incluir
+              #access_token=… largo, no un número corto.
             </p>
             <Link href="/login" className="mt-3 inline-block text-sm font-bold text-[#1b3a4a] underline">
               Ir al inicio de sesión

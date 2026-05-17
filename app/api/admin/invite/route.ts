@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { emailMayInvite } from '@/lib/admin/inviters';
 import { getSessionAndRol } from '@/lib/admin/session-profile';
+import { getSetPasswordRedirectUrl } from '@/lib/site-url';
 
 export async function POST(request: Request) {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? '';
 
   if (!serviceKey) {
     return NextResponse.json(
@@ -40,10 +40,22 @@ export async function POST(request: Request) {
   });
 
   /**
-   * inviteUserByEmail usa flujo implícito: tokens van en el hash (#access_token…&type=invite).
-   * Debe abrirse una página con cliente auth `flowType: 'implicit'` (ver /set-password), no /registro (PKCE).
+   * inviteUserByEmail → redirectTo absoluto, una sola vez /set-password.
+   * Con Site URL = https://admin-ivn.vercel.app y env igual, Supabase redirige a:
+   *   https://admin-ivn.vercel.app/set-password#access_token=…&type=invite
+   * (nunca /set-password/set-password). Tokens en hash; consumir en /set-password con flowType implicit.
    */
-  const redirectTo = siteUrl ? `${siteUrl}/set-password` : undefined;
+  const redirectTo = getSetPasswordRedirectUrl() || undefined;
+  if (!redirectTo) {
+    return NextResponse.json(
+      {
+        error:
+          'Falta NEXT_PUBLIC_SITE_URL (solo dominio, ej. https://admin-ivn.vercel.app, sin /set-password).',
+      },
+      { status: 500 }
+    );
+  }
+
   const { error } = await admin.auth.admin.inviteUserByEmail(inviteEmail, {
     redirectTo,
   });
