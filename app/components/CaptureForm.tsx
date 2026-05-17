@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Info, AlertTriangle, AlertCircle, Calendar, ArrowLeft, 
   Send, Users, ImageIcon, Upload, Loader2,
-  AlignLeft, History, X, Trash2, Edit3, Clock, CheckCircle, Copy, Search, Anchor
+  AlignLeft, History, X, Trash2, Edit3, Clock, CheckCircle, Copy, Search, Anchor, ClipboardPaste
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { FormState } from '../../types';
@@ -48,8 +48,9 @@ export const CaptureForm = ({ form, onChange, onLoadAviso, onResetAviso, onBack,
   // Estados para Búsqueda en Historial
   const [filterDate, setFilterDate] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const imageZoneRef = useRef<HTMLDivElement>(null);
+  const pasteZoneRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pasteHint, setPasteHint] = useState(false);
   const editingRecordIdRef = useRef<string | null>(null);
 
   const ministerios = [
@@ -231,11 +232,65 @@ export const CaptureForm = ({ form, onChange, onLoadAviso, onResetAviso, onBack,
     e.target.value = '';
   };
 
+  const clearPasteZone = () => {
+    const el = pasteZoneRef.current;
+    if (!el) return;
+    el.innerHTML = '<br>';
+  };
+
+  useEffect(() => {
+    if (form.imagen_url) return;
+    const el = pasteZoneRef.current;
+    if (el && !el.innerHTML.trim()) {
+      el.innerHTML = '<br>';
+    }
+  }, [form.imagen_url]);
+
+  const focusPasteZone = () => {
+    const el = pasteZoneRef.current;
+    if (!el) return;
+    el.focus();
+    try {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+    } catch {
+      /* ignorar en navegadores sin Selection */
+    }
+  };
+
   const handleImagePaste = async (e: React.ClipboardEvent) => {
     const file = getClipboardImage(e.clipboardData);
     if (!file) return;
     e.preventDefault();
+    clearPasteZone();
+    setPasteHint(false);
     await uploadImageFile(file);
+  };
+
+  const pasteImageFromClipboardApi = async () => {
+    if (uploading) return;
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.read) {
+      try {
+        const items = await navigator.clipboard.read();
+        for (const item of items) {
+          const imageType = item.types.find((t) => t.startsWith('image/'));
+          if (imageType) {
+            const blob = await item.getType(imageType);
+            setPasteHint(false);
+            await uploadImageFile(blob);
+            return;
+          }
+        }
+      } catch {
+        /* Permiso denegado o sin imagen: usar zona de pegado */
+      }
+    }
+    focusPasteZone();
+    setPasteHint(true);
   };
 
   useEffect(() => {
@@ -397,14 +452,7 @@ export const CaptureForm = ({ form, onChange, onLoadAviso, onResetAviso, onBack,
           <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2 ml-1">
             <ImageIcon className="w-3 h-3" /> DISEÑO GRÁFICO
           </label>
-          <div
-            ref={imageZoneRef}
-            tabIndex={0}
-            role="group"
-            aria-label="Subir o pegar imagen del aviso"
-            onPaste={handleImagePaste}
-            className="relative border-2 border-dashed border-white/40 rounded-3xl min-h-40 flex flex-col items-center justify-center bg-white/5 overflow-hidden outline-none focus-within:border-white/70 focus-within:ring-2 focus-within:ring-white/30"
-          >
+          <motion.div className="relative overflow-hidden rounded-3xl border-2 border-dashed border-white/40 bg-white/5 outline-none focus-within:border-white/70 focus-within:ring-2 focus-within:ring-white/30">
             <input
               ref={fileInputRef}
               type="file"
@@ -414,30 +462,76 @@ export const CaptureForm = ({ form, onChange, onLoadAviso, onResetAviso, onBack,
               disabled={uploading}
             />
             {uploading ? (
-              <Loader2 className="animate-spin text-white w-8 h-8" />
+              <div className="flex min-h-40 items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-white" />
+              </div>
             ) : form.imagen_url ? (
-              <img src={form.imagen_url} alt="Preview" className="w-full h-full min-h-40 object-cover" />
+              <div className="relative min-h-40">
+                <img src={form.imagen_url} alt="Preview" className="min-h-40 w-full object-cover" />
+                <div className="absolute inset-x-0 bottom-0 flex justify-center gap-2 bg-gradient-to-t from-[#1b3a4a]/80 to-transparent px-3 pb-3 pt-8">
+                  <button
+                    type="button"
+                    onClick={() => void pasteImageFromClipboardApi()}
+                    className="flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-[#1b3a4a] shadow-md active:scale-95"
+                  >
+                    <ClipboardPaste className="h-3.5 w-3.5" /> Pegar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="rounded-full bg-white/95 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-[#1b3a4a] shadow-md active:scale-95"
+                  >
+                    Archivo
+                  </button>
+                </div>
+              </div>
             ) : (
-              <div className="flex flex-col items-center gap-3 px-4 py-6">
-                <Upload className="text-white w-8 h-8 opacity-60" />
-                <p className="text-[10px] font-bold uppercase tracking-wide text-white/70 text-center leading-snug">
-                  Pega aquí una imagen copiada
-                  <span className="block normal-case font-medium text-white/55 mt-1">
-                    Ctrl+V en PC · mantén presionado y Pega en móvil
-                  </span>
-                </p>
+              <div className="flex min-h-44 flex-col">
+                <motion.div className="relative flex-1 px-3 pt-3">
+                  <div
+                    ref={pasteZoneRef}
+                    contentEditable
+                    suppressContentEditableWarning
+                    role="textbox"
+                    aria-label="Zona para pegar imagen. En móvil: mantén presionado y elige Pegar."
+                    aria-multiline
+                    onPaste={handleImagePaste}
+                    onInput={clearPasteZone}
+                    onFocus={() => setPasteHint(false)}
+                    className="min-h-[7.5rem] w-full select-text rounded-2xl border border-white/25 bg-white/10 px-3 py-3 text-sm text-white/90 caret-transparent outline-none [-webkit-user-select:text] empty:before:pointer-events-none empty:before:block empty:before:text-center empty:before:text-[11px] empty:before:font-medium empty:before:leading-snug empty:before:text-white/55 empty:before:content-[attr(data-placeholder)]"
+                    data-placeholder="Toca aquí, mantén presionado y elige «Pegar»"
+                  />
+                  <div className="pointer-events-none absolute inset-x-3 top-3 flex min-h-[7.5rem] flex-col items-center justify-center gap-2 px-2">
+                    <Upload className="h-7 w-7 text-white/50" />
+                    <p className="text-center text-[10px] font-bold uppercase tracking-wide text-white/60">
+                      Imagen desde portapapeles
+                    </p>
+                  </div>
+                </motion.div>
+                {pasteHint && (
+                  <p className="px-4 pb-1 text-center text-[11px] font-semibold leading-snug text-amber-200">
+                    Mantén presionado el recuadro de arriba hasta que aparezca «Pegar».
+                  </p>
+                )}
+                <div className="flex gap-2 px-3 pb-3">
+                  <button
+                    type="button"
+                    onClick={() => void pasteImageFromClipboardApi()}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-white py-3 text-[10px] font-black uppercase tracking-wider text-[#1b3a4a] shadow-md active:scale-95"
+                  >
+                    <ClipboardPaste className="h-4 w-4" /> Pegar imagen
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex-1 rounded-2xl border border-white/30 bg-[#1b3a4a]/50 py-3 text-[10px] font-black uppercase tracking-wider text-white shadow-md active:scale-95"
+                  >
+                    Elegir archivo
+                  </button>
+                </div>
               </div>
             )}
-            {!uploading && (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 rounded-full bg-white/90 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-[#1b3a4a] shadow-md active:scale-95"
-              >
-                Elegir archivo
-              </button>
-            )}
-          </div>
+          </motion.div>
         </div>
 
         {/* ACTIVIDAD */}
