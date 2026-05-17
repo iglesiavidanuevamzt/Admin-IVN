@@ -45,6 +45,46 @@ export default function AdminApp() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const loadAvisoToForm = (aviso: {
+    id: string;
+    titulo?: string;
+    mensaje?: string;
+    ministerio?: string;
+    urgencia?: string;
+    fecha_expiracion?: string;
+    fecha_publicacion?: string;
+    imagen_url?: string;
+    es_fijo?: boolean;
+  }) => {
+    setForm((prev) => ({
+      ...prev,
+      id: aviso.id,
+      titulo: aviso.titulo ?? '',
+      mensaje: aviso.mensaje ?? '',
+      ministerio: aviso.ministerio ?? 'General',
+      urgencia: aviso.urgencia ?? 'informativo',
+      fechaExpiracion: aviso.fecha_expiracion ?? getFechaHoy(),
+      fechaPublicacion: aviso.fecha_publicacion ?? getFechaHoy(),
+      imagen_url: aviso.imagen_url ?? '',
+      es_fijo: aviso.es_fijo === true,
+    }));
+  };
+
+  const resetAvisoForm = () => {
+    setForm((prev) => ({
+      ...prev,
+      id: null,
+      titulo: '',
+      mensaje: '',
+      imagen_url: '',
+      ministerio: 'General',
+      urgencia: 'informativo',
+      fechaExpiracion: getFechaHoy(),
+      fechaPublicacion: getFechaHoy(),
+      es_fijo: false,
+    }));
+  };
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -91,11 +131,8 @@ export default function AdminApp() {
 
   const handleNavigate = (screen: Screen) => {
     if (!canAccessScreen(appRoles, screen)) return;
-    if (screen === 'avisos') {
-      setForm(prev => ({
-        ...prev, id: null, titulo: '', mensaje: '',
-        imagen_url: '', fechaExpiracion: getFechaHoy(), es_fijo: false
-      }));
+    if (screen === 'avisos' && currentScreen === 'home') {
+      resetAvisoForm();
     }
     if (screen === 'alabanzas') {
       setForm(prev => ({
@@ -152,7 +189,9 @@ export default function AdminApp() {
         {currentScreen === 'avisos' && (
           <CaptureForm 
             form={form} 
-            onChange={updateForm} 
+            onChange={updateForm}
+            onLoadAviso={loadAvisoToForm}
+            onResetAviso={resetAvisoForm}
             onBack={() => setCurrentScreen('home')} 
             onShowHistory={() => setCurrentScreen('history')}
           />
@@ -163,18 +202,7 @@ export default function AdminApp() {
           <HistoryView 
             onBack={() => setCurrentScreen('avisos')} 
             onEdit={(aviso) => {
-              setForm({
-                ...form,
-                id: aviso.id,
-                titulo: aviso.titulo,
-                ministerio: aviso.ministerio,
-                mensaje: aviso.mensaje,
-                urgencia: aviso.urgencia,
-                fechaExpiracion: aviso.fecha_expiracion,
-                fechaPublicacion: aviso.fecha_public_acion || aviso.fecha_publicacion || getFechaHoy(),
-                imagen_url: aviso.imagen_url,
-                es_fijo: aviso.es_fijo === true
-              });
+              loadAvisoToForm(aviso);
               setCurrentScreen('avisos');
             }}
           />

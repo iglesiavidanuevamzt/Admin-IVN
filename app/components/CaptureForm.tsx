@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Info, AlertTriangle, AlertCircle, Calendar, ArrowLeft, 
@@ -13,11 +13,23 @@ import { FormState } from '../../types';
 interface CaptureFormProps {
   form: FormState;
   onChange: (field: keyof FormState, value: any) => void;
+  onLoadAviso?: (aviso: {
+    id: string;
+    titulo?: string;
+    mensaje?: string;
+    ministerio?: string;
+    urgencia?: string;
+    fecha_expiracion?: string;
+    fecha_publicacion?: string;
+    imagen_url?: string;
+    es_fijo?: boolean;
+  }) => void;
+  onResetAviso?: () => void;
   onBack: () => void;
   onShowHistory?: () => void;
 }
 
-export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFormProps) => {
+export const CaptureForm = ({ form, onChange, onLoadAviso, onResetAviso, onBack, onShowHistory }: CaptureFormProps) => {
   const esFijo = form.es_fijo === true;
   const [uploading, setUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,6 +48,9 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
   // Estados para Búsqueda en Historial
   const [filterDate, setFilterDate] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const imageZoneRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const editingRecordIdRef = useRef<string | null>(null);
 
   const ministerios = [
     'General', 'Varones Vida Nueva', 'Mujeres Awaken VN', 
@@ -50,18 +65,32 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
   ];
 
   const fetchHistorial = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('anuncios')
       .select('*')
       .order('creado_el', { ascending: false });
+    if (error) {
+      setErrorMessage('No se pudo cargar el historial: ' + error.message);
+      return;
+    }
     if (data) setHistorial(data);
   };
 
   useEffect(() => { fetchHistorial(); }, []);
 
+  useEffect(() => {
+    if (form.id) {
+      setEditingId(form.id);
+      editingRecordIdRef.current = form.id;
+    }
+  }, [form.id]);
+
+  const getRecordId = () =>
+    editingRecordIdRef.current ?? editingId ?? form.id ?? null;
+
   // Lógica de filtrado para el historial
   const filteredHistorial = historial.filter((item) => {
-    const matchesDate = filterDate ? (item.fecha_publicacion === filterDate || item.fecha_public_acion === filterDate) : true;
+    const matchesDate = filterDate ? item.fecha_publicacion === filterDate : true;
     const matchesTitle = searchTerm 
       ? item.titulo.toLowerCase().includes(searchTerm.toLowerCase()) 
       : true;
@@ -86,32 +115,71 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
   }, [form.fechaPublicacion, form.fechaExpiracion, esFijo]);
 
   const resetFormFields = () => {
-    const hoy = new Date().toISOString().split('T')[0]; 
+    editingRecordIdRef.current = null;
     setEditingId(null);
-    onChange('id' as keyof FormState, null);
-    onChange('titulo' as keyof FormState, '');
-    onChange('mensaje' as keyof FormState, '');
-    onChange('imagen_url' as keyof FormState, '');
-    onChange('ministerio' as keyof FormState, 'General');
-    onChange('urgencia' as keyof FormState, 'informativo');
-    onChange('fechaExpiracion', hoy);
-    onChange('fechaPublicacion', hoy);
-    onChange('es_fijo', false);
+    if (onResetAviso) {
+      onResetAviso();
+    } else {
+      const hoy = new Date().toISOString().split('T')[0];
+      onChange('id' as keyof FormState, null);
+      onChange('titulo' as keyof FormState, '');
+      onChange('mensaje' as keyof FormState, '');
+      onChange('imagen_url' as keyof FormState, '');
+      onChange('ministerio' as keyof FormState, 'General');
+      onChange('urgencia' as keyof FormState, 'informativo');
+      onChange('fechaExpiracion', hoy);
+      onChange('fechaPublicacion', hoy);
+      onChange('es_fijo', false);
+    }
   };
 
-  const startEditing = (item: any) => {
+  const startEditing = (item: {
+    id: string;
+    titulo?: string;
+    mensaje?: string;
+    ministerio?: string;
+    urgencia?: string;
+    fecha_expiracion?: string;
+    fecha_publicacion?: string;
+    imagen_url?: string;
+    es_fijo?: boolean;
+  }) => {
+    editingRecordIdRef.current = item.id;
     setEditingId(item.id);
-    onChange('id' as keyof FormState, item.id);
-    onChange('titulo' as keyof FormState, item.titulo);
-    onChange('mensaje' as keyof FormState, item.mensaje);
-    onChange('ministerio' as keyof FormState, item.ministerio);
-    onChange('urgencia' as keyof FormState, item.urgencia);
-    onChange('fechaExpiracion' as keyof FormState, item.fecha_expiracion);
-    onChange('fechaPublicacion', item.fecha_public_acion || item.fecha_publicacion);
-    onChange('imagen_url' as keyof FormState, item.imagen_url);
-    onChange('es_fijo', item.es_fijo === true);
+    if (onLoadAviso) {
+      onLoadAviso(item);
+    } else {
+      onChange('id' as keyof FormState, item.id);
+      onChange('titulo' as keyof FormState, item.titulo ?? '');
+      onChange('mensaje' as keyof FormState, item.mensaje ?? '');
+      onChange('ministerio' as keyof FormState, item.ministerio ?? 'General');
+      onChange('urgencia' as keyof FormState, item.urgencia ?? 'informativo');
+      onChange('fechaExpiracion', item.fecha_expiracion ?? '');
+      onChange('fechaPublicacion', item.fecha_publicacion ?? '');
+      onChange('imagen_url' as keyof FormState, item.imagen_url ?? '');
+      onChange('es_fijo', item.es_fijo === true);
+    }
     setShowHistory(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const saveAnuncioViaApi = async (
+    method: 'PATCH' | 'POST',
+    body: Record<string, unknown>
+  ) => {
+    const res = await fetch('/api/admin/anuncios', {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const json = (await res.json()) as { error?: string; anuncio?: Record<string, unknown> };
+    if (!res.ok) {
+      throw new Error(json.error || 'No se pudo guardar el aviso.');
+    }
+    if (!json.anuncio?.id) {
+      throw new Error('La base de datos no devolvió el aviso guardado.');
+    }
+    return json.anuncio;
   };
 
   const confirmDelete = async () => {
@@ -123,24 +191,72 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const uploadImageFile = useCallback(async (file: File | Blob) => {
     try {
       setUploading(true);
-      const file = e.target.files?.[0];
-      if (!file) return;
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
+      const mime = file.type || 'image/png';
+      const extFromMime = mime.split('/')[1]?.replace('jpeg', 'jpg') || 'png';
+      const ext =
+        file instanceof File && file.name.includes('.')
+          ? file.name.split('.').pop() || extFromMime
+          : extFromMime;
+      const fileName = `${Date.now()}.${ext}`;
       const filePath = `disenos/${fileName}`;
       const { error: uploadError } = await supabase.storage.from('assets').upload(filePath, file);
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = supabase.storage.from('assets').getPublicUrl(filePath);
       onChange('imagen_url' as keyof FormState, publicUrl);
-    } catch (err: any) {
-      setErrorMessage("No se pudo subir la imagen. Intenta de nuevo.");
+    } catch {
+      setErrorMessage('No se pudo subir la imagen. Intenta de nuevo.');
     } finally {
       setUploading(false);
     }
+  }, [onChange]);
+
+  const getClipboardImage = (clipboard: DataTransfer | null): File | null => {
+    if (!clipboard?.items) return null;
+    for (let i = 0; i < clipboard.items.length; i++) {
+      const item = clipboard.items[i];
+      if (item.type.startsWith('image/')) {
+        return item.getAsFile();
+      }
+    }
+    return null;
   };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await uploadImageFile(file);
+    e.target.value = '';
+  };
+
+  const handleImagePaste = async (e: React.ClipboardEvent) => {
+    const file = getClipboardImage(e.clipboardData);
+    if (!file) return;
+    e.preventDefault();
+    await uploadImageFile(file);
+  };
+
+  useEffect(() => {
+    const onDocumentPaste = (e: ClipboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      const file = getClipboardImage(e.clipboardData);
+      if (!file) return;
+      e.preventDefault();
+      void uploadImageFile(file);
+    };
+    document.addEventListener('paste', onDocumentPaste);
+    return () => document.removeEventListener('paste', onDocumentPaste);
+  }, [uploadImageFile]);
 
   const handlePublish = async () => {
     if (!form.titulo) {
@@ -148,11 +264,14 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
       return;
     }
 
+    const recordId = getRecordId();
+    const isEditing = Boolean(recordId);
+
     const normalizar = (t: string) => t.replace(/\s+/g, ' ').trim().toLowerCase();
     const tituloActual = normalizar(form.titulo);
 
-    const esRepetido = historial.some(item => 
-      normalizar(item.titulo) === tituloActual && item.id !== editingId
+    const esRepetido = historial.some(
+      (item) => normalizar(item.titulo) === tituloActual && item.id !== recordId
     );
 
     if (esRepetido) {
@@ -173,17 +292,26 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
         es_fijo: esFijo,
       };
 
-      const { error } = (editingId || form.id) 
-        ? await supabase.from('anuncios').update(payload).eq('id', editingId || form.id)
-        : await supabase.from('anuncios').insert([payload]);
+      let saved: Record<string, unknown>;
+      if (isEditing) {
+        saved = await saveAnuncioViaApi('PATCH', { id: recordId, ...payload });
+      } else {
+        saved = await saveAnuncioViaApi('POST', payload);
+      }
 
-      if (error) throw error;
-      
+      setHistorial((prev) => {
+        if (isEditing) {
+          return prev.map((item) => (item.id === saved.id ? { ...item, ...saved } : item));
+        }
+        return [saved, ...prev];
+      });
+
       setShowSuccessModal(true);
       resetFormFields();
-      fetchHistorial();
-    } catch (err: any) {
-      setErrorMessage("Error al guardar el aviso: " + err.message);
+      await fetchHistorial();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error desconocido';
+      setErrorMessage('Error al guardar el aviso: ' + msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -254,16 +382,61 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
         </button>
       </div>
 
-      <div className="w-full bg-[#85A3A5] rounded-[2.5rem] shadow-2xl p-5 sm:p-8 space-y-6 border border-white/20 text-left overflow-hidden flex flex-col box-border">
+      <motion.div className="w-full bg-[#85A3A5] rounded-[2.5rem] shadow-2xl p-5 sm:p-8 space-y-6 border border-white/20 text-left overflow-hidden flex flex-col box-border">
+
+        {getRecordId() && (
+          <div className="rounded-2xl border border-amber-400/40 bg-amber-500/15 px-4 py-3 text-center">
+            <p className="text-[10px] font-black uppercase tracking-widest text-amber-100">
+              Modo edición — al guardar se actualiza el aviso existente
+            </p>
+          </div>
+        )}
         
         {/* DISEÑO GRÁFICO */}
         <div className="space-y-3 w-full">
           <label className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2 ml-1">
             <ImageIcon className="w-3 h-3" /> DISEÑO GRÁFICO
           </label>
-          <div className="relative border-2 border-dashed border-white/40 rounded-3xl h-40 flex flex-col items-center justify-center bg-white/5 overflow-hidden">
-            <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={handleFileUpload} disabled={uploading} />
-            {uploading ? <Loader2 className="animate-spin text-white w-8 h-8" /> : form.imagen_url ? <img src={form.imagen_url} alt="Preview" className="w-full h-full object-cover" /> : <Upload className="text-white w-8 h-8 opacity-60" />}
+          <div
+            ref={imageZoneRef}
+            tabIndex={0}
+            role="group"
+            aria-label="Subir o pegar imagen del aviso"
+            onPaste={handleImagePaste}
+            className="relative border-2 border-dashed border-white/40 rounded-3xl min-h-40 flex flex-col items-center justify-center bg-white/5 overflow-hidden outline-none focus-within:border-white/70 focus-within:ring-2 focus-within:ring-white/30"
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={handleFileUpload}
+              disabled={uploading}
+            />
+            {uploading ? (
+              <Loader2 className="animate-spin text-white w-8 h-8" />
+            ) : form.imagen_url ? (
+              <img src={form.imagen_url} alt="Preview" className="w-full h-full min-h-40 object-cover" />
+            ) : (
+              <div className="flex flex-col items-center gap-3 px-4 py-6">
+                <Upload className="text-white w-8 h-8 opacity-60" />
+                <p className="text-[10px] font-bold uppercase tracking-wide text-white/70 text-center leading-snug">
+                  Pega aquí una imagen copiada
+                  <span className="block normal-case font-medium text-white/55 mt-1">
+                    Ctrl+V en PC · mantén presionado y Pega en móvil
+                  </span>
+                </p>
+              </div>
+            )}
+            {!uploading && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 rounded-full bg-white/90 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-[#1b3a4a] shadow-md active:scale-95"
+              >
+                Elegir archivo
+              </button>
+            )}
           </div>
         </div>
 
@@ -391,13 +564,13 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* BOTÓN PRINCIPAL */}
       <div className="mt-12 pb-10 flex flex-col items-center">
         <button onClick={handlePublish} disabled={isSubmitting || uploading} className="w-full max-w-sm bg-[#1b3a4a] text-white text-lg font-black py-6 rounded-[2rem] shadow-2xl flex items-center justify-center gap-4 active:scale-95 transition-all disabled:opacity-50 uppercase tracking-widest">
           {isSubmitting ? <Loader2 className="animate-spin w-6 h-6" /> : <Send className="w-6 h-6" />}
-          {isSubmitting ? 'ENVIANDO...' : (editingId || form.id) ? 'GUARDAR CAMBIOS' : 'PUBLICAR AHORA'}
+          {isSubmitting ? 'ENVIANDO...' : getRecordId() ? 'GUARDAR CAMBIOS' : 'PUBLICAR AHORA'}
         </button>
       </div>
 
@@ -475,7 +648,7 @@ export const CaptureForm = ({ form, onChange, onBack, onShowHistory }: CaptureFo
                 {filteredHistorial.length > 0 ? filteredHistorial.map((item) => (
                   <div key={item.id} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex justify-between items-center hover:bg-white transition-all shadow-sm">
                     <div className="flex flex-col min-w-0 pr-4 text-left">
-                      <span className="text-[10px] font-black text-[#85A3A5] uppercase mb-1">{item.fecha_publicacion || item.fecha_public_acion}</span>
+                      <span className="text-[10px] font-black text-[#85A3A5] uppercase mb-1">{item.fecha_publicacion}</span>
                       <p className="text-slate-600 text-sm truncate font-black uppercase tracking-tight">{item.titulo}</p>
                     </div>
                     <div className="flex gap-2">

@@ -21,7 +21,7 @@ export const HistoryView = ({ onEdit, onBack }: HistoryViewProps) => {
     const { data, error } = await supabase
       .from('anuncios')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('creado_el', { ascending: false });
 
     if (!error) setAvisos(data || []);
     setLoading(false);
