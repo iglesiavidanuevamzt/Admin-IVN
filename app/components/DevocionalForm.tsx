@@ -248,7 +248,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
           </label>
           <input 
             type="date" 
-            className="bg-white border-none rounded-2xl px-6 py-4 outline-none text-slate-600 shadow-inner text-base font-bold block w-full appearance-none" 
+            className="block w-full min-w-0 max-w-full appearance-none rounded-2xl border-none bg-white px-6 py-4 text-base font-bold text-slate-600 shadow-inner outline-none" 
             value={form.fechaDevocional || ''} 
             onChange={(e) => onChange('fechaDevocional', e.target.value)} 
           />
@@ -297,7 +297,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1b3a4a]/60 backdrop-blur-md">
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-2xl max-h-[80vh] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col mx-4">
               
-              <div className="p-8 border-b bg-slate-50 text-left">
+              <div className="border-b bg-slate-50 p-4 text-left sm:p-8">
                 <div className="flex justify-between items-center mb-6">
                   <div>
                     <h3 className="font-black text-[#1b3a4a] text-lg uppercase tracking-tight">Archivo de Devocionales</h3>
@@ -317,7 +317,7 @@ export const DevocionalForm = ({ form, onChange, onBack }: DevocionalFormProps) 
                     <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#85A3A5] z-10" />
                     <input 
                       type="date" 
-                      className="w-full bg-white border border-slate-200 rounded-2xl pl-12 pr-12 py-3 text-sm sm:text-base outline-none shadow-sm text-slate-600 font-bold appearance-none min-w-0"
+                      className="block w-full min-w-0 max-w-full rounded-2xl border border-slate-200 bg-white py-3 pl-12 pr-12 text-sm font-bold text-slate-600 shadow-sm outline-none appearance-none sm:text-base"
                       value={filterDate}
                       onChange={(e) => setFilterDate(e.target.value)}
                     />

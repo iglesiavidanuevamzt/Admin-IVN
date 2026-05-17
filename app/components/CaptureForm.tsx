@@ -612,22 +612,22 @@ export const CaptureForm = ({ form, onChange, onLoadAviso, onResetAviso, onBack,
 
         {/* FECHAS - CORRECCIÓN DE SEPARACIÓN EN MÓVIL */}
         <div className="space-y-6 pt-4 border-t border-white/20">
-          <div className="flex flex-col sm:flex-row gap-4 w-full">
-            <div className="space-y-2 flex-1">
+          <div className="flex w-full min-w-0 flex-col gap-4 sm:flex-row">
+            <div className="min-w-0 flex-1 space-y-2">
               <label className="text-[11px] font-black uppercase text-white tracking-widest ml-1 block">Publicación</label>
               <input
                 type="date"
-                className="w-full rounded-2xl bg-white px-4 py-4 text-base font-bold text-slate-700 shadow-sm outline-none appearance-none"
+                className="block w-full min-w-0 max-w-full rounded-2xl bg-white px-4 py-4 text-base font-bold text-slate-700 shadow-sm outline-none appearance-none"
                 value={form.fechaPublicacion || ''}
                 onChange={(e) => onChange('fechaPublicacion', e.target.value)}
               />
             </div>
-            <div className={`space-y-2 flex-1 ${esFijo ? 'opacity-40' : ''}`}>
+            <div className={`min-w-0 flex-1 space-y-2 ${esFijo ? 'opacity-40' : ''}`}>
               <label className="text-[11px] font-black uppercase text-white tracking-widest ml-1 block">Caducidad</label>
               <input
                 type="date"
                 disabled={esFijo}
-                className={`w-full rounded-2xl bg-white px-4 py-4 text-base font-bold text-slate-700 shadow-sm outline-none appearance-none ${
+                className={`block w-full min-w-0 max-w-full rounded-2xl bg-white px-4 py-4 text-base font-bold text-slate-700 shadow-sm outline-none appearance-none ${
                   esFijo ? 'pointer-events-none' : ''
                 }`}
                 value={form.fechaExpiracion || ''}
@@ -692,9 +692,9 @@ export const CaptureForm = ({ form, onChange, onLoadAviso, onResetAviso, onBack,
       <AnimatePresence>
         {showHistory && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1b3a4a]/60 backdrop-blur-md">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-2xl max-h-[85vh] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="mx-4 flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-[3rem] bg-white shadow-2xl">
               
-              <div className="p-8 border-b bg-slate-50 text-left">
+              <div className="border-b bg-slate-50 p-4 text-left sm:p-8">
                 <div className="flex justify-between items-center mb-6">
                   <div>
                     <h3 className="font-black text-[#1b3a4a] text-lg uppercase tracking-tight">Historial de Avisos</h3>
@@ -703,8 +703,8 @@ export const CaptureForm = ({ form, onChange, onLoadAviso, onResetAviso, onBack,
                   <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-slate-200 rounded-full"><X className="w-6 h-6 text-slate-400" /></button>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-4 w-full">
-                  <div className="relative w-full sm:w-2/3">
+                <motion.div className="flex w-full min-w-0 flex-col gap-4 sm:flex-row">
+                  <div className="relative w-full min-w-0 sm:w-2/3">
                     <label className="text-[10px] font-black text-[#1b3a4a] uppercase tracking-widest ml-1 mb-2 block">Actividad</label>
                     <div className="relative">
                       <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#85A3A5]" />
@@ -718,13 +718,13 @@ export const CaptureForm = ({ form, onChange, onLoadAviso, onResetAviso, onBack,
                     </div>
                   </div>
 
-                  <div className="relative w-full sm:w-1/3">
+                  <div className="relative w-full min-w-0 sm:w-1/3">
                     <label className="text-[10px] font-black text-[#1b3a4a] uppercase tracking-widest ml-1 mb-2 block">Por Fecha</label>
-                    <div className="relative flex items-center">
+                    <div className="relative flex min-w-0 items-center">
                       <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#85A3A5] z-10" />
                       <input 
                         type="date" 
-                        className="w-full bg-white border border-slate-200 rounded-2xl pl-12 pr-10 py-3 text-sm outline-none shadow-sm text-slate-600 font-bold appearance-none min-w-0"
+                        className="block w-full min-w-0 max-w-full rounded-2xl border border-slate-200 bg-white py-3 pl-12 pr-10 text-sm font-bold text-slate-600 shadow-sm outline-none appearance-none"
                         value={filterDate}
                         onChange={(e) => setFilterDate(e.target.value)}
                       />
@@ -735,7 +735,7 @@ export const CaptureForm = ({ form, onChange, onLoadAviso, onResetAviso, onBack,
                       )}
                     </div>
                   </div>
-                </div>
+                </motion.div>
               </div>
 
               <div className="p-6 overflow-y-auto space-y-4">

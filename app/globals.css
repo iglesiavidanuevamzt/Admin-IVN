@@ -27,6 +27,15 @@
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #cbd5e1;
   }
+
+  /* Evita que input[type=date] desborde en flex/grid en móvil (iOS/Android) */
+  input[type='date'] {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
 }
 
 .editorial-shadow {
