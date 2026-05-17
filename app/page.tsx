@@ -10,7 +10,8 @@ import { PraisesForm } from './components/PraisesForm';
 import { CalendarView } from './components/CalendarView';
 import { FormState, Screen } from '../types';
 import { supabase } from '@/lib/supabase-browser';
-import { canAccessScreen, isAdminOrSuperAdmin, parseRoles } from '@/lib/roles';
+import { resolveAccess } from '@/lib/access';
+import { canAccessScreen, isAdminOrSuperAdmin } from '@/lib/roles';
 
 const getFechaHoy = () => new Date().toISOString().split('T')[0];
 
@@ -150,10 +151,14 @@ export default function AdminApp() {
         }
         const roles = Array.isArray(perfil?.rol)
           ? perfil.rol
-          : (typeof perfil?.rol === 'string' ? perfil.rol.split(',') : []);
-        const normalizedRoles = parseRoles(roles);
-        console.log('Roles detectados:', normalizedRoles);
-        if (!cancelled) setAppRoles(normalizedRoles);
+          : typeof perfil?.rol === 'string'
+            ? perfil.rol.split(',')
+            : [];
+        const access = resolveAccess(roles);
+        if (access.usedFallback) {
+          console.warn('[access] Se aplicó fallback de administrador (revisar perfiles.rol o lib/access).');
+        }
+        if (!cancelled) setAppRoles(access.roles);
       } finally {
         if (!cancelled) setProfileLoading(false);
       }

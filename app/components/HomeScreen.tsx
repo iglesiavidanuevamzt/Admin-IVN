@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import type { Screen } from '../../types';
+import { homeCardsForRoles, isAdminOrSuperAdmin, isSuperAdmin, parseRoles } from '@/lib/roles';
 
 type HomeScreenProps = {
   onNavigate: (s: Screen) => void;
@@ -12,32 +13,33 @@ type HomeScreenProps = {
   showUserManagement: boolean;
 };
 
+const MODULE_ROLE_HINTS = new Set([
+  'musica',
+  'devocional',
+  'devocionales',
+  'anuncios',
+  'avisos',
+  'agenda',
+  'calendario',
+  'admin',
+  'super-admin',
+]);
+
 export const HomeScreen = ({
   onNavigate,
   roles,
   profileLoading,
   showUserManagement,
 }: HomeScreenProps) => {
-  const hasRole = (...values: string[]) => values.some((v) => roles.includes(v));
-  const isSuperAdmin = roles.includes('super-admin');
+  const normalized = parseRoles(roles);
+  const superAdmin = isSuperAdmin(normalized);
+  const hasModuleRole = normalized.some((r) => MODULE_ROLE_HINTS.has(r));
   const pendingVisitante =
-    (roles.includes('visitante') || roles.includes('biblias')) &&
-    !isSuperAdmin &&
-    !hasRole('musica', 'devocional', 'devocionales', 'anuncios', 'avisos', 'agenda', 'calendario', 'encargado');
-  const cards = [
-    hasRole('devocional', 'devocionales') || isSuperAdmin
-      ? { id: 'devocional' as Screen, title: 'Devocionales', iconPath: '/icons/logo_devocionales.png' }
-      : null,
-    hasRole('anuncios', 'avisos') || isSuperAdmin
-      ? { id: 'avisos' as Screen, title: 'Anuncios', iconPath: '/icons/logo_avisos.png' }
-      : null,
-    roles.includes('musica') || isSuperAdmin
-      ? { id: 'alabanzas' as Screen, title: 'Alabanzas', iconPath: '/icons/alabanza.png' }
-      : null,
-    hasRole('agenda', 'calendario') || isSuperAdmin
-      ? { id: 'agenda-view' as Screen, title: 'Calendario', iconPath: '/icons/logo_agenda.png' }
-      : null,
-  ].filter(Boolean) as { id: Screen; title: string; iconPath: string }[];
+    (normalized.includes('visitante') || normalized.includes('biblias')) &&
+    !superAdmin &&
+    !isAdminOrSuperAdmin(normalized) &&
+    !hasModuleRole;
+  const cards = homeCardsForRoles(normalized);
   return (
     <div className="fixed inset-0 bg-gradient-to-b from-[#f5eae1] via-[#e5dfda] to-[#122e43] flex flex-col items-center justify-center p-6 overflow-hidden">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
