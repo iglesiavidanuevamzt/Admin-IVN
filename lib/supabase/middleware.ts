@@ -52,6 +52,12 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
+
+  /** Las APIs de auth reciben POST; el middleware no debe redirigirlas a /login (provoca 405). */
+  if (path.startsWith('/api/')) {
+    return supabaseResponse;
+  }
+
   const isLogin = path === '/login' || path.startsWith('/login/');
   const isRegistro = path === '/registro' || path.startsWith('/registro/');
   const isSetPassword = path === '/set-password' || path.startsWith('/set-password/');
