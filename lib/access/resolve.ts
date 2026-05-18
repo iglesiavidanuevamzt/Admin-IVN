@@ -27,7 +27,25 @@ export function parseRoles(input: string | string[] | null | undefined): string[
     return [...new Set(input.map(normalizeRole).filter(Boolean))];
   }
   if (!input) return [];
-  return [...new Set(input.split(',').map(normalizeRole).filter(Boolean))];
+  const trimmed = input.trim();
+  if (trimmed.startsWith('[')) {
+    try {
+      const parsed: unknown = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return [...new Set(parsed.map((r) => normalizeRole(String(r))).filter(Boolean))];
+      }
+    } catch {
+      /* formato texto plano */
+    }
+  }
+  return [...new Set(trimmed.split(',').map(normalizeRole).filter(Boolean))];
+}
+
+/** Normaliza `perfiles.rol` (array Postgres, CSV o JSON string). */
+export function rolesFromPerfilRow(rol: unknown): string[] {
+  if (Array.isArray(rol)) return parseRoles(rol);
+  if (typeof rol === 'string') return parseRoles(rol);
+  return [];
 }
 
 function moduleScreensForRole(role: string): readonly Screen[] | null {
@@ -35,11 +53,12 @@ function moduleScreensForRole(role: string): readonly Screen[] | null {
   return hit?.screens ?? null;
 }
 
-/** Roles legacy sin módulo propio (solo inicio). */
+/** Roles legacy sin módulo propio en ACCESS_MODULES. */
 const LEGACY_HOME_ONLY: Record<string, readonly Screen[]> = {
   visitante: ['home'],
   biblias: ['home'],
-  encargado: ['home'],
+  /** Encargados históricos de avisos (antes del mapa modular). */
+  encargado: ['home', 'avisos', 'history'],
 };
 
 function mergeScreensForRoles(roles: string[]): Set<Screen> {

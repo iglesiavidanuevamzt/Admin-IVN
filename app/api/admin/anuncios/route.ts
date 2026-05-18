@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { canAccessScreen, isAdminOrSuperAdmin } from '@/lib/roles';
+import { canAccessScreen, isAdminOrSuperAdmin, parseRoles } from '@/lib/roles';
 import { getSessionAndRol } from '@/lib/admin/session-profile';
 
 function adminClient() {
@@ -12,7 +12,10 @@ function adminClient() {
 }
 
 function canManageAnuncios(roles: string[]) {
-  return isAdminOrSuperAdmin(roles) || canAccessScreen(roles, 'avisos');
+  const normalized = parseRoles(roles);
+  if (isAdminOrSuperAdmin(normalized)) return true;
+  if (canAccessScreen(normalized, 'avisos')) return true;
+  return normalized.some((r) => r === 'anuncios' || r === 'avisos' || r === 'encargado');
 }
 
 type AnuncioPayload = {

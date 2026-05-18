@@ -12,7 +12,7 @@ import { FormState, Screen } from '../types';
 import { supabase } from '@/lib/supabase-browser';
 import { resolveAccess } from '@/lib/access';
 import { redirectImplicitAuthHashToSetPassword } from '@/lib/auth/redirect-invite-hash';
-import { canAccessScreen, isAdminOrSuperAdmin } from '@/lib/roles';
+import { canAccessScreen, isAdminOrSuperAdmin, rolesFromPerfilRow } from '@/lib/roles';
 
 const getFechaHoy = () => new Date().toISOString().split('T')[0];
 
@@ -154,11 +154,7 @@ export default function AdminApp() {
             perfil = again.data;
           }
         }
-        const roles = Array.isArray(perfil?.rol)
-          ? perfil.rol
-          : typeof perfil?.rol === 'string'
-            ? perfil.rol.split(',')
-            : [];
+        const roles = rolesFromPerfilRow(perfil?.rol);
         const access = resolveAccess(roles);
         if (access.usedFallback) {
           console.warn('[access] Se aplicó fallback de administrador (revisar perfiles.rol o lib/access).');

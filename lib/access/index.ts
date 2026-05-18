@@ -18,6 +18,7 @@ export {
   isAdminOrSuperAdmin,
   isSuperAdmin,
   parseRoles,
+  rolesFromPerfilRow,
   resolveAccess,
   screensForRoles,
   type AccessResolution,
