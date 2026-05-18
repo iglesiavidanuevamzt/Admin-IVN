@@ -1,5 +1,17 @@
+async function readApiError(res: Response): Promise<string> {
+  const text = await res.text();
+  try {
+    const json = JSON.parse(text) as { error?: string };
+    if (json.error) return json.error;
+  } catch {
+    /* no json */
+  }
+  if (text.trim()) return text.slice(0, 200);
+  return `Error del servidor (${res.status})`;
+}
+
 /**
- * Finaliza invitación: servidor confirma usuario, guarda contraseña y deja cookies listas.
+ * Tras guardar contraseña en el cliente de invitación, el servidor escribe cookies de sesión.
  */
 export async function completeInviteLoginAfterPassword(options: {
   email: string;
@@ -9,10 +21,11 @@ export async function completeInviteLoginAfterPassword(options: {
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const { email, password, accessToken, refreshToken } = options;
 
-  if (!accessToken) {
+  if (!accessToken || !refreshToken) {
     return {
       ok: false,
-      error: 'La sesión de invitación expiró. Cierra esta pestaña y abre de nuevo el enlace del correo o WhatsApp.',
+      error:
+        'Sesión incompleta. Abre de nuevo el enlace de invitación (Generar enlace) y guarda la contraseña sin recargar la página.',
     };
   }
 
@@ -28,9 +41,8 @@ export async function completeInviteLoginAfterPassword(options: {
     }),
   });
 
-  const body = (await res.json().catch(() => ({}))) as { error?: string };
   if (!res.ok) {
-    return { ok: false, error: body.error ?? 'No se pudo completar el acceso.' };
+    return { ok: false, error: await readApiError(res) };
   }
 
   return { ok: true };

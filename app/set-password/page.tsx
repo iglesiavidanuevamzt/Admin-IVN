@@ -126,14 +126,15 @@ export default function SetPasswordPage() {
         throw new Error('No se encontró el correo de la invitación. Abre el enlace del correo de nuevo.');
       }
 
-      let session = (await supabase.auth.getSession()).data.session;
-      if (!session?.access_token) {
-        const refreshed = await supabase.auth.refreshSession();
-        session = refreshed.data.session;
-      }
-      if (!session?.access_token) {
+      const { error: updateErr } = await supabase.auth.updateUser({ password });
+      if (updateErr) throw updateErr;
+
+      const refreshed = await supabase.auth.refreshSession();
+      let session = refreshed.data.session ?? (await supabase.auth.getSession()).data.session;
+
+      if (!session?.access_token || !session.refresh_token) {
         throw new Error(
-          'La sesión de invitación expiró. Pide al administrador un enlace nuevo (Generar enlace) y ábrelo de inmediato.'
+          'La sesión de invitación se perdió. Abre de nuevo el enlace (Generar enlace) y guarda la contraseña sin recargar.'
         );
       }
 
