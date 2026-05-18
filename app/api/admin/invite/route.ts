@@ -56,12 +56,30 @@ export async function POST(request: Request) {
     );
   }
 
-  const { error } = await admin.auth.admin.inviteUserByEmail(inviteEmail, {
+  const { data: inviteData, error } = await admin.auth.admin.inviteUserByEmail(inviteEmail, {
     redirectTo,
+    data: { invited_by_ivn: true },
   });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  const invitedUserId = inviteData?.user?.id;
+  if (invitedUserId) {
+    const { data: existingPerfil } = await admin
+      .from('perfiles')
+      .select('user_id')
+      .eq('user_id', invitedUserId)
+      .maybeSingle();
+
+    if (!existingPerfil) {
+      await admin.from('perfiles').insert({
+        user_id: invitedUserId,
+        email: inviteEmail,
+        rol: ['visitante'],
+      });
+    }
   }
 
   return NextResponse.json({

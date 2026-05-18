@@ -11,6 +11,7 @@ import { CalendarView } from './components/CalendarView';
 import { FormState, Screen } from '../types';
 import { supabase } from '@/lib/supabase-browser';
 import { resolveAccess } from '@/lib/access';
+import { redirectImplicitAuthHashToSetPassword } from '@/lib/auth/redirect-invite-hash';
 import { canAccessScreen, isAdminOrSuperAdmin } from '@/lib/roles';
 
 const getFechaHoy = () => new Date().toISOString().split('T')[0];
@@ -128,6 +129,10 @@ export default function AdminApp() {
       reflexion: '',
     }));
   };
+
+  useEffect(() => {
+    redirectImplicitAuthHashToSetPassword();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

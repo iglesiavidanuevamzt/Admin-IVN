@@ -1,30 +1,17 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Loader2, UserPlus } from 'lucide-react';
+import { redirectImplicitAuthHashToSetPassword } from '@/lib/auth/redirect-invite-hash';
 import { supabase } from '@/lib/supabase-browser';
-import { REGISTRO_CATEGORIAS, SUPER_ADMIN_ROLE } from '@/lib/roles';
 
-/** Invitación/recuperación de Supabase lleva tokens en #…; /registro usa PKCE y no puede consumirlos. */
-function urlLooksLikeInviteOrRecoveryHash(): boolean {
-  if (typeof window === 'undefined') return false;
-  const h = window.location.hash.toLowerCase();
-  return (
-    h.includes('access_token') ||
-    h.includes('type=invite') ||
-    h.includes('type%3dinvite') ||
-    h.includes('type=recovery') ||
-    h.includes('type%3drecovery')
-  );
-}
-
-async function bootstrapPerfilFromClient(roles: string[]): Promise<{ ok: boolean; error?: string }> {
+async function bootstrapPerfilVisitante(): Promise<{ ok: boolean; error?: string }> {
   const res = await fetch('/api/auth/bootstrap-perfil', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ roles }),
+    body: JSON.stringify({ roles: ['visitante'] }),
   });
   const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
   if (!res.ok) {
@@ -38,64 +25,17 @@ export default function RegistroPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
-  const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
-  /** Solo se deshabilita si el servidor responde explícitamente disponible: false. Por defecto permitir (alta inicial). */
-  const [superAdminDisponible, setSuperAdminDisponible] = useState(true);
-
-  const toggle = useCallback((value: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(value)) next.delete(value);
-      else next.add(value);
-      return next;
-    });
-  }, []);
-
-  const rolesForSignup = useMemo(() => Array.from(selected), [selected]);
+  const [redirectingInvite, setRedirectingInvite] = useState(true);
 
   const authCallbackUrl = typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : undefined;
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (urlLooksLikeInviteOrRecoveryHash()) {
-      window.location.replace(`/set-password${window.location.search}${window.location.hash}`);
-    }
+    if (redirectImplicitAuthHashToSetPassword()) return;
+    setRedirectingInvite(false);
   }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(`/api/auth/super-admin-disponible?t=${Date.now()}`, { cache: 'no-store' });
-        const body = (await res.json().catch(() => ({}))) as { disponible?: boolean };
-        if (cancelled) return;
-        if (!res.ok) {
-          setSuperAdminDisponible(true);
-          return;
-        }
-        // Importante: solo false deshabilita. undefined / JSON raro / ausente → no bloquear el alta.
-        setSuperAdminDisponible(body.disponible !== false);
-      } catch {
-        if (!cancelled) setSuperAdminDisponible(true);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (superAdminDisponible !== false) return;
-    setSelected((prev) => {
-      if (!prev.has(SUPER_ADMIN_ROLE)) return prev;
-      const next = new Set(prev);
-      next.delete(SUPER_ADMIN_ROLE);
-      return next;
-    });
-  }, [superAdminDisponible]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,22 +52,17 @@ export default function RegistroPage() {
 
     setLoading(true);
     try {
-      const effectiveRoles =
-        superAdminDisponible === false ? rolesForSignup.filter((r) => r !== SUPER_ADMIN_ROLE) : rolesForSignup;
       const { data, error: signErr } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
           emailRedirectTo: authCallbackUrl,
-          data: {
-            registration_roles: effectiveRoles,
-          },
         },
       });
       if (signErr) throw signErr;
 
       if (data.session) {
-        const boot = await bootstrapPerfilFromClient(effectiveRoles);
+        const boot = await bootstrapPerfilVisitante();
         if (!boot.ok) {
           setError(boot.error ?? 'Cuenta creada pero no se pudo preparar tu perfil. Contacta al administrador.');
           return;
@@ -137,7 +72,9 @@ export default function RegistroPage() {
         return;
       }
 
-      setInfo('Te enviamos un correo de confirmación. Abre el enlace y entrarás directo al panel principal.');
+      setInfo(
+        'Te enviamos un correo de confirmación. Un administrador te asignará los módulos cuando apruebe tu cuenta.'
+      );
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'No se pudo completar el registro.');
     } finally {
@@ -145,11 +82,22 @@ export default function RegistroPage() {
     }
   };
 
+  if (redirectingInvite) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-slate-50">
+        <Loader2 className="h-8 w-8 animate-spin text-[#1b3a4a]/35" aria-hidden />
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-slate-50 px-4 py-10">
       <div className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-8 shadow-xl sm:p-10">
         <h1 className="text-center font-serif text-2xl font-bold text-[#1b3a4a]">Crear cuenta</h1>
-        <p className="mt-2 text-center text-xs text-slate-500">Elige uno o varios módulos para tu panel principal.</p>
+        <p className="mt-2 text-center text-xs text-slate-500">
+          Solo para alta voluntaria. Si te invitaron por correo, usa el enlace de invitación (no esta página). Los módulos
+          los asigna un administrador.
+        </p>
 
         <form onSubmit={onSubmit} className="mt-8 space-y-4">
           <div>
@@ -205,40 +153,6 @@ export default function RegistroPage() {
               minLength={6}
             />
           </div>
-
-          <fieldset className="rounded-xl border border-slate-200 p-4">
-            <legend className="px-1 text-[10px] font-black uppercase tracking-widest text-slate-500">
-              Categorías / módulos
-            </legend>
-            <ul className="mt-2 max-h-52 space-y-2 overflow-y-auto text-sm">
-              {REGISTRO_CATEGORIAS.map((cat) => (
-                <li key={cat.value} className="flex items-start gap-2">
-                  <input
-                    id={`cat-${cat.value}`}
-                    type="checkbox"
-                    checked={selected.has(cat.value)}
-                    onChange={() => toggle(cat.value)}
-                    disabled={cat.value === SUPER_ADMIN_ROLE && superAdminDisponible === false}
-                    className="mt-1 rounded border-slate-300"
-                  />
-                  <label
-                    htmlFor={`cat-${cat.value}`}
-                    className={
-                      cat.value === SUPER_ADMIN_ROLE && superAdminDisponible === false
-                        ? 'cursor-not-allowed text-slate-400'
-                        : 'cursor-pointer text-slate-700'
-                    }
-                  >
-                    {cat.label}
-                    {cat.value === SUPER_ADMIN_ROLE && superAdminDisponible === false ? ' (no disponible)' : ''}
-                  </label>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-3 text-xs text-slate-500">
-              El rol Super Administrador solo está disponible durante el alta inicial del sistema.
-            </p>
-          </fieldset>
 
           {error && <p className="text-center text-sm text-red-600">{error}</p>}
           {info && <p className="text-center text-sm text-[#1b3a4a]">{info}</p>}

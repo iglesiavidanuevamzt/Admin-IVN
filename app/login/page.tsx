@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Loader2, Lock } from 'lucide-react';
+import { redirectImplicitAuthHashToSetPassword } from '@/lib/auth/redirect-invite-hash';
 import { supabase } from '@/lib/supabase-browser';
 
 function isTokenStorageError(err: unknown): boolean {
@@ -36,6 +37,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [redirectingInvite, setRedirectingInvite] = useState(true);
+
+  useEffect(() => {
+    if (redirectImplicitAuthHashToSetPassword()) return;
+    setRedirectingInvite(false);
+  }, []);
 
   const signInWithPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,12 +63,20 @@ export default function LoginPage() {
     }
   };
 
+  if (redirectingInvite) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-slate-50">
+        <Loader2 className="h-8 w-8 animate-spin text-[#1b3a4a]/35" aria-hidden />
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-slate-50 px-4 py-10">
       <div className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-8 shadow-xl sm:p-10">
         <h1 className="text-center font-serif text-2xl font-bold text-[#1b3a4a]">Admin IVN</h1>
         <p className="mt-2 text-center text-xs text-slate-500">
-          Acceso con correo y contraseña. Confirma tu correo si el proyecto lo requiere.
+          Acceso con correo y contraseña. Si recibiste invitación por correo, abre ese enlace (no uses Registrarse).
         </p>
 
         <form onSubmit={signInWithPassword} className="mt-8 space-y-4">

@@ -114,6 +114,13 @@ export default function SetPasswordPage() {
     try {
       const { error: err } = await supabase.auth.updateUser({ password });
       if (err) throw err;
+
+      await fetch('/api/auth/bootstrap-perfil', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roles: ['visitante'] }),
+      });
+
       setSuccess(true);
       await supabase.auth.signOut();
       await new Promise((r) => setTimeout(r, 1600));

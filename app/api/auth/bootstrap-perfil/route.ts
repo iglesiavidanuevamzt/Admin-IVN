@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createServerSupabase } from '@/lib/supabase/server';
-import { parseRoles, REGISTRO_ROLE_VALUES, SUPER_ADMIN_ROLE } from '@/lib/roles';
+import {
+  DEFAULT_BOOTSTRAP_ROLE,
+  isInvitedAuthUser,
+  sanitizeSelfServiceBootstrapRoles,
+} from '@/lib/auth/bootstrap-roles';
+import { parseRoles } from '@/lib/roles';
 
-const DEFAULT_ROLES = ['visitante'];
+const DEFAULT_ROLES = [DEFAULT_BOOTSTRAP_ROLE];
 
 function adminClient() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -13,35 +18,24 @@ function adminClient() {
   });
 }
 
-function pickRoles(bodyRoles: unknown, userMetadata: Record<string, unknown> | undefined): string[] {
+async function resolveBootstrapRoles(
+  bodyRoles: unknown,
+  user: { invited_at?: string | null; user_metadata?: Record<string, unknown>; app_metadata?: Record<string, unknown> }
+): Promise<string[]> {
+  if (isInvitedAuthUser(user)) {
+    return DEFAULT_ROLES;
+  }
+
   const fromBody = Array.isArray(bodyRoles) ? bodyRoles : [];
-  const filteredBody = [...new Set(parseRoles(fromBody).filter((r) => REGISTRO_ROLE_VALUES.has(r)))];
-  if (filteredBody.length > 0) return filteredBody;
-
-  const meta = userMetadata?.registration_roles;
+  const meta = user.user_metadata?.registration_roles;
   const metaArr = Array.isArray(meta) ? meta : [];
-  const filteredMeta = [...new Set(parseRoles(metaArr).filter((r) => REGISTRO_ROLE_VALUES.has(r)))];
-  if (filteredMeta.length > 0) return filteredMeta;
+  const requested = [...parseRoles(fromBody), ...parseRoles(metaArr)];
 
-  return DEFAULT_ROLES;
-}
-
-async function readSuperAdminFlag(admin: ReturnType<typeof adminClient>): Promise<boolean | null> {
-  if (!admin) return null;
-  const { data, error } = await admin.from('system_flags').select('super_admin_created').eq('id', 1).maybeSingle();
-  if (error) return null;
-  return data?.super_admin_created === true;
-}
-
-async function writeSuperAdminFlag(admin: ReturnType<typeof adminClient>): Promise<void> {
-  if (!admin) return;
-  await admin
-    .from('system_flags')
-    .upsert({ id: 1, super_admin_created: true, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+  return sanitizeSelfServiceBootstrapRoles(requested);
 }
 
 /**
- * Crea la fila en `perfiles` si no existe. Roles: cuerpo JSON, metadatos de registro en Auth, o valor por defecto.
+ * Crea la fila en `perfiles` si no existe. Solo rol visitante desde el cliente; módulos vía admin.
  */
 export async function POST(request: Request) {
   const supabase = await createServerSupabase();
@@ -74,28 +68,11 @@ export async function POST(request: Request) {
     bodyRoles = undefined;
   }
 
-  let rolesToInsert = pickRoles(bodyRoles, user.user_metadata as Record<string, unknown> | undefined);
-
-  if (rolesToInsert.includes(SUPER_ADMIN_ROLE)) {
-    const flagValue = await readSuperAdminFlag(admin);
-    if (flagValue === true) {
-      rolesToInsert = rolesToInsert.filter((r) => r !== SUPER_ADMIN_ROLE);
-      if (rolesToInsert.length === 0) rolesToInsert = DEFAULT_ROLES;
-    } else if (flagValue === null) {
-      const { data: superAdminRows, error: superAdminErr } = await admin
-        .from('perfiles')
-        .select('user_id')
-        .contains('rol', [SUPER_ADMIN_ROLE])
-        .limit(1);
-      if (superAdminErr) {
-        return NextResponse.json({ error: superAdminErr.message }, { status: 400 });
-      }
-      if ((superAdminRows?.length ?? 0) > 0) {
-        rolesToInsert = rolesToInsert.filter((r) => r !== SUPER_ADMIN_ROLE);
-        if (rolesToInsert.length === 0) rolesToInsert = DEFAULT_ROLES;
-      }
-    }
-  }
+  const rolesToInsert = await resolveBootstrapRoles(bodyRoles, {
+    invited_at: user.invited_at,
+    user_metadata: user.user_metadata as Record<string, unknown>,
+    app_metadata: user.app_metadata as Record<string, unknown>,
+  });
 
   const { data: existing } = await admin.from('perfiles').select('user_id').eq('user_id', user.id).maybeSingle();
   if (existing) {
@@ -117,10 +94,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, created: false });
     }
     return NextResponse.json({ error: insErr.message }, { status: 400 });
-  }
-
-  if (rolesToInsert.includes(SUPER_ADMIN_ROLE)) {
-    await writeSuperAdminFlag(admin);
   }
 
   return NextResponse.json({ ok: true, created: true });
