@@ -49,10 +49,15 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      const { data, error: err } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
       if (err) throw err;
-      router.refresh();
-      router.push('/');
+      if (!data.session) {
+        throw new Error('Inicio de sesión sin sesión. Intenta de nuevo.');
+      }
+      window.location.assign('/');
     } catch (err: unknown) {
       if (isTokenStorageError(err)) {
         clearSupabaseLocalStorage();

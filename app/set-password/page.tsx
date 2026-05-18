@@ -2,18 +2,17 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { CheckCircle2, KeyRound, Loader2 } from 'lucide-react';
 import { establishInviteSessionFromUrl } from '@/lib/auth/establish-invite-session';
 import { messageForAuthUrlError } from '@/lib/auth/invite-link-errors';
 import { parseAuthParamsFromUrl, urlLooksLikeAuthRedirect } from '@/lib/auth/parse-auth-url';
+import { syncInviteSessionToAppClient } from '@/lib/auth/sync-session-to-app-client';
 import { tryRepairMalformedInviteUrl } from '@/lib/auth/repair-invite-url';
 import { createInviteRecoverySupabaseClient } from '@/lib/supabase-invite-recovery-client';
 
 const MIN_LENGTH = 8;
 
 export default function SetPasswordPage() {
-  const router = useRouter();
   const supabase = useMemo(() => createInviteRecoverySupabaseClient(), []);
 
   const [password, setPassword] = useState('');
@@ -122,17 +121,25 @@ export default function SetPasswordPage() {
       const { error: err } = await supabase.auth.updateUser({ password });
       if (err) throw err;
 
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const synced = await syncInviteSessionToAppClient(supabase, session);
+      if (!synced.ok) {
+        throw new Error(synced.error);
+      }
+
       await fetch('/api/auth/bootstrap-perfil', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roles: ['visitante'] }),
       });
 
-      setSuccess(true);
       await supabase.auth.signOut();
-      await new Promise((r) => setTimeout(r, 1600));
-      router.refresh();
-      router.push('/login');
+
+      setSuccess(true);
+      await new Promise((r) => setTimeout(r, 900));
+      window.location.assign('/');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar la contraseña.');
     } finally {
@@ -174,7 +181,7 @@ export default function SetPasswordPage() {
           <div className="mt-8 flex flex-col items-center gap-3 text-center">
             <CheckCircle2 className="h-12 w-12 text-green-600" aria-hidden />
             <p className="text-sm font-medium text-green-800">Contraseña guardada correctamente.</p>
-            <p className="text-xs text-slate-500">Te llevamos al inicio de sesión…</p>
+            <p className="text-xs text-slate-500">Entrando al panel…</p>
             <Loader2 className="h-6 w-6 animate-spin text-[#1b3a4a]/30" />
           </div>
         ) : (
