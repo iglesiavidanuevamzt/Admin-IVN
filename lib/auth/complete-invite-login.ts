@@ -1,5 +1,5 @@
 /**
- * Tras guardar contraseña: inicia sesión en el servidor (cookies) para que el middleware reconozca al usuario.
+ * Finaliza invitación: servidor confirma usuario, guarda contraseña y deja cookies listas.
  */
 export async function completeInviteLoginAfterPassword(options: {
   email: string;
@@ -9,39 +9,29 @@ export async function completeInviteLoginAfterPassword(options: {
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const { email, password, accessToken, refreshToken } = options;
 
-  const signIn = await fetch('/api/auth/sign-in', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ email, password }),
-  });
-  const signBody = (await signIn.json().catch(() => ({}))) as { error?: string };
-  if (signIn.ok) {
-    return { ok: true };
-  }
-
-  if (accessToken && refreshToken) {
-    const est = await fetch('/api/auth/establish-session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      }),
-    });
-    const estBody = (await est.json().catch(() => ({}))) as { error?: string };
-    if (est.ok) {
-      return { ok: true };
-    }
+  if (!accessToken) {
     return {
       ok: false,
-      error: signBody.error ?? estBody.error ?? 'No se pudo iniciar sesión. Intenta de nuevo en unos segundos.',
+      error: 'La sesión de invitación expiró. Cierra esta pestaña y abre de nuevo el enlace del correo o WhatsApp.',
     };
   }
 
-  return {
-    ok: false,
-    error: signBody.error ?? 'No se pudo iniciar sesión con la nueva contraseña.',
-  };
+  const res = await fetch('/api/auth/finish-invite-setup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({
+      email,
+      password,
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    }),
+  });
+
+  const body = (await res.json().catch(() => ({}))) as { error?: string };
+  if (!res.ok) {
+    return { ok: false, error: body.error ?? 'No se pudo completar el acceso.' };
+  }
+
+  return { ok: true };
 }
