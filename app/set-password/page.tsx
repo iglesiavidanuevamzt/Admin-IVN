@@ -7,6 +7,7 @@ import { establishInviteSessionFromUrl } from '@/lib/auth/establish-invite-sessi
 import { messageForAuthUrlError } from '@/lib/auth/invite-link-errors';
 import { parseAuthParamsFromUrl, urlLooksLikeAuthRedirect } from '@/lib/auth/parse-auth-url';
 import { completeInviteLoginAfterPassword } from '@/lib/auth/complete-invite-login';
+import { isSamePasswordError, translateAuthError } from '@/lib/auth/password-errors';
 import { tryRepairMalformedInviteUrl } from '@/lib/auth/repair-invite-url';
 import { createInviteRecoverySupabaseClient } from '@/lib/supabase-invite-recovery-client';
 
@@ -127,7 +128,9 @@ export default function SetPasswordPage() {
       }
 
       const { error: updateErr } = await supabase.auth.updateUser({ password });
-      if (updateErr) throw updateErr;
+      if (updateErr && !isSamePasswordError(updateErr.message)) {
+        throw new Error(translateAuthError(updateErr.message));
+      }
 
       const refreshed = await supabase.auth.refreshSession();
       let session = refreshed.data.session ?? (await supabase.auth.getSession()).data.session;
@@ -161,7 +164,8 @@ export default function SetPasswordPage() {
       await new Promise((r) => setTimeout(r, 600));
       window.location.assign('/');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'No se pudo guardar la contraseña.');
+      const msg = err instanceof Error ? err.message : 'No se pudo guardar la contraseña.';
+      setError(translateAuthError(msg));
     } finally {
       setLoading(false);
     }

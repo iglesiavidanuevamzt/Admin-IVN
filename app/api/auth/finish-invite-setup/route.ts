@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { isSamePasswordError } from '@/lib/auth/password-errors';
 import { createSupabaseRouteHandlerClient } from '@/lib/supabase/route-handler';
 
 export async function POST(request: Request) {
@@ -73,7 +74,7 @@ export async function POST(request: Request) {
       password,
       email_confirm: true,
     });
-    if (updateErr) {
+    if (updateErr && !isSamePasswordError(updateErr.message)) {
       return NextResponse.json({ error: `Contraseña: ${updateErr.message}` }, { status: 400 });
     }
 
