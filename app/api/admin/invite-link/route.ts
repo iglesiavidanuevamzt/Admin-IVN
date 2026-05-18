@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { emailMayInvite } from '@/lib/admin/inviters';
 import { getSessionAndRol } from '@/lib/admin/session-profile';
-import { getSetPasswordRedirectUrl } from '@/lib/site-url';
+import { getInviteWhatsAppCallbackRedirectUrl } from '@/lib/site-url';
 
 /**
  * Solo genera un enlace de invitación (sin enviar correo).
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Correo inválido.' }, { status: 400 });
   }
 
-  const redirectTo = getSetPasswordRedirectUrl();
+  const redirectTo = getInviteWhatsAppCallbackRedirectUrl();
   if (!redirectTo) {
     return NextResponse.json({ error: 'Falta NEXT_PUBLIC_SITE_URL.' }, { status: 500 });
   }
@@ -53,7 +53,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  const setupLink = linkData?.properties?.action_link ?? null;
+  const props = linkData?.properties;
+  const hashedToken = props?.hashed_token;
+  const verificationType = props?.verification_type ?? 'invite';
+
+  /** Enlace directo a nuestra app (query), sin pasar por verify de Supabase — más fiable en WhatsApp. */
+  let setupLink: string | null = null;
+  if (hashedToken && redirectTo) {
+    const callback = new URL(redirectTo);
+    callback.searchParams.set('token_hash', hashedToken);
+    callback.searchParams.set('type', verificationType);
+    setupLink = callback.toString();
+  } else {
+    setupLink = props?.action_link ?? null;
+  }
+
   if (!setupLink) {
     return NextResponse.json({ error: 'No se pudo generar el enlace.' }, { status: 500 });
   }
@@ -76,7 +90,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     message:
-      'Enlace generado. Envíalo por WhatsApp y que lo abra una sola vez en Chrome o Safari (enlace válido ~24 h).',
+      'Enlace generado. Envíalo por WhatsApp; que lo abra una sola vez en Chrome o Safari (menú ⋮ → Abrir en navegador). No reutilices enlaces viejos.',
     setupLink,
   });
 }

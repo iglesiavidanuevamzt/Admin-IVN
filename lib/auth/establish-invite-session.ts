@@ -17,12 +17,12 @@ export async function establishInviteSessionFromUrl(
     };
   }
 
-  if (params.code) {
-    return {
-      session: null,
-      errorMessage:
-        'Este enlace usa un formato distinto. Pide al administrador reenviar la invitación.',
-    };
+  if (params.code && typeof window !== 'undefined') {
+    const u = new URL('/auth/callback', window.location.origin);
+    u.searchParams.set('code', params.code);
+    u.searchParams.set('next', '/set-password');
+    window.location.replace(u.toString());
+    return { session: null };
   }
 
   if (params.token_hash) {

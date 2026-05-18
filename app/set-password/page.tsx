@@ -7,6 +7,10 @@ import { establishInviteSessionFromUrl } from '@/lib/auth/establish-invite-sessi
 import { messageForAuthUrlError } from '@/lib/auth/invite-link-errors';
 import { parseAuthParamsFromUrl, urlLooksLikeAuthRedirect } from '@/lib/auth/parse-auth-url';
 import { saveInvitePasswordAction } from './actions';
+import {
+  checkInviteServerSessionAction,
+  getServerInviteSessionTokensAction,
+} from './session-actions';
 import { isSamePasswordError, translateAuthError } from '@/lib/auth/password-errors';
 import { tryRepairMalformedInviteUrl } from '@/lib/auth/repair-invite-url';
 import { createInviteRecoverySupabaseClient } from '@/lib/supabase-invite-recovery-client';
@@ -20,6 +24,8 @@ export default function SetPasswordPage() {
   const [confirm, setConfirm] = useState('');
   const [checking, setChecking] = useState(true);
   const [hasSession, setHasSession] = useState(false);
+  /** Sesión en cookies SSR tras /auth/callback (enlace WhatsApp). */
+  const [hasServerSession, setHasServerSession] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -38,10 +44,15 @@ export default function SetPasswordPage() {
   useEffect(() => {
     let cancelled = false;
 
-    const finish = (session: import('@supabase/supabase-js').Session | null, errMsg?: string) => {
+    const finish = (
+      session: import('@supabase/supabase-js').Session | null,
+      errMsg?: string,
+      serverSession = false
+    ) => {
       if (cancelled) return;
-      setHasSession(!!session);
-      if (!session && errMsg) setLinkError(errMsg);
+      setHasSession(!!session || serverSession);
+      setHasServerSession(serverSession);
+      if (!session && !serverSession && errMsg) setLinkError(errMsg);
       setChecking(false);
     };
 
@@ -95,7 +106,18 @@ export default function SetPasswordPage() {
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      finish(session, session ? undefined : first.errorMessage);
+      if (session) {
+        finish(session);
+        return;
+      }
+
+      const serverCheck = await checkInviteServerSessionAction();
+      if (serverCheck.ok) {
+        finish(null, undefined, true);
+        return;
+      }
+
+      finish(null, first.errorMessage);
     })();
 
     return () => {
@@ -119,23 +141,41 @@ export default function SetPasswordPage() {
 
     setLoading(true);
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const email = user?.email?.trim();
-      if (!email) {
-        throw new Error('No se encontró el correo de la invitación. Abre el enlace del correo de nuevo.');
+      let email: string | undefined;
+      let accessToken: string | undefined;
+      let refreshToken: string | undefined;
+
+      if (hasServerSession) {
+        const serverTokens = await getServerInviteSessionTokensAction();
+        if (!serverTokens) {
+          throw new Error(
+            'La sesión del enlace expiró. Pide un enlace nuevo (Generar enlace) y ábrelo una sola vez en Chrome o Safari.'
+          );
+        }
+        email = serverTokens.email;
+        accessToken = serverTokens.accessToken;
+        refreshToken = serverTokens.refreshToken;
+      } else {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        email = user?.email?.trim();
+        if (!email) {
+          throw new Error('No se encontró el correo de la invitación. Abre el enlace del correo de nuevo.');
+        }
+
+        const { error: updateErr } = await supabase.auth.updateUser({ password });
+        if (updateErr && !isSamePasswordError(updateErr.message)) {
+          throw new Error(translateAuthError(updateErr.message));
+        }
+
+        const refreshed = await supabase.auth.refreshSession();
+        const session = refreshed.data.session ?? (await supabase.auth.getSession()).data.session;
+        accessToken = session?.access_token;
+        refreshToken = session?.refresh_token;
       }
 
-      const { error: updateErr } = await supabase.auth.updateUser({ password });
-      if (updateErr && !isSamePasswordError(updateErr.message)) {
-        throw new Error(translateAuthError(updateErr.message));
-      }
-
-      const refreshed = await supabase.auth.refreshSession();
-      let session = refreshed.data.session ?? (await supabase.auth.getSession()).data.session;
-
-      if (!session?.access_token || !session.refresh_token) {
+      if (!email || !accessToken || !refreshToken) {
         throw new Error(
           'La sesión de invitación se perdió. Abre de nuevo el enlace (Generar enlace) y guarda la contraseña sin recargar.'
         );
@@ -144,14 +184,16 @@ export default function SetPasswordPage() {
       const saved = await saveInvitePasswordAction({
         email,
         password,
-        accessToken: session.access_token,
-        refreshToken: session.refresh_token,
+        accessToken,
+        refreshToken,
       });
       if (!saved.ok) {
         throw new Error(saved.error);
       }
 
-      await supabase.auth.signOut();
+      if (!hasServerSession) {
+        await supabase.auth.signOut();
+      }
 
       setSuccess(true);
       await new Promise((r) => setTimeout(r, 600));

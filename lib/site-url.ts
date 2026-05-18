@@ -28,3 +28,14 @@ export function getSetPasswordRedirectUrl(): string {
   if (!base) return '';
   return `${base}${SET_PASSWORD_PATH}`;
 }
+
+/**
+ * Redirect para «Generar enlace» (WhatsApp): el callback en servidor recibe
+ * token_hash en query (no depende del #access_token que pierde WhatsApp).
+ */
+export function getInviteWhatsAppCallbackRedirectUrl(): string {
+  const base = getSiteUrl();
+  if (!base) return '';
+  const next = encodeURIComponent(SET_PASSWORD_PATH);
+  return `${base}/auth/callback?next=${next}`;
+}
