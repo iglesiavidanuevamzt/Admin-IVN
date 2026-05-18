@@ -1,22 +1,7 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { canAccessScreen, isAdminOrSuperAdmin, parseRoles } from '@/lib/roles';
+import { canManageModule, canPerformModuleAction } from '@/lib/admin/module-access';
 import { getSessionAndRol } from '@/lib/admin/session-profile';
-
-function adminClient() {
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!serviceKey) return null;
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-}
-
-function canManageAnuncios(roles: string[]) {
-  const normalized = parseRoles(roles);
-  if (isAdminOrSuperAdmin(normalized)) return true;
-  if (canAccessScreen(normalized, 'avisos')) return true;
-  return normalized.some((r) => r === 'anuncios' || r === 'avisos' || r === 'encargado');
-}
+import { createServiceRoleClient } from '@/lib/admin/supabase-service';
 
 type AnuncioPayload = {
   titulo: string;
@@ -44,16 +29,26 @@ function parsePayload(body: Record<string, unknown>): AnuncioPayload | null {
   };
 }
 
+function forbidden(action?: 'crear' | 'editar' | 'eliminar') {
+  const detalle = action ? ` (${action})` : '';
+  return NextResponse.json(
+    {
+      error: `Sin permiso para ${action ?? 'gestionar'} avisos${detalle}. Pide al administrador el permiso correspondiente.`,
+    },
+    { status: 403 }
+  );
+}
+
 export async function PATCH(request: Request) {
   const session = await getSessionAndRol();
   if (!session.user) {
     return NextResponse.json({ error: 'Sesión no válida.' }, { status: 401 });
   }
-  if (!canManageAnuncios(session.rol)) {
-    return NextResponse.json({ error: 'Sin permiso para editar avisos.' }, { status: 403 });
+  if (!canManageModule(session.rol, 'avisos') || !canPerformModuleAction(session.rol, 'avisos', 'editar')) {
+    return forbidden('editar');
   }
 
-  const admin = adminClient();
+  const admin = createServiceRoleClient();
   if (!admin) {
     return NextResponse.json({ error: 'Servidor sin clave de servicio.' }, { status: 500 });
   }
@@ -97,11 +92,11 @@ export async function POST(request: Request) {
   if (!session.user) {
     return NextResponse.json({ error: 'Sesión no válida.' }, { status: 401 });
   }
-  if (!canManageAnuncios(session.rol)) {
-    return NextResponse.json({ error: 'Sin permiso para crear avisos.' }, { status: 403 });
+  if (!canManageModule(session.rol, 'avisos') || !canPerformModuleAction(session.rol, 'avisos', 'crear')) {
+    return forbidden('crear');
   }
 
-  const admin = adminClient();
+  const admin = createServiceRoleClient();
   if (!admin) {
     return NextResponse.json({ error: 'Servidor sin clave de servicio.' }, { status: 500 });
   }
@@ -128,4 +123,31 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ anuncio: data });
+}
+
+export async function DELETE(request: Request) {
+  const session = await getSessionAndRol();
+  if (!session.user) {
+    return NextResponse.json({ error: 'Sesión no válida.' }, { status: 401 });
+  }
+  if (!canManageModule(session.rol, 'avisos') || !canPerformModuleAction(session.rol, 'avisos', 'eliminar')) {
+    return forbidden('eliminar');
+  }
+
+  const admin = createServiceRoleClient();
+  if (!admin) {
+    return NextResponse.json({ error: 'Servidor sin clave de servicio.' }, { status: 500 });
+  }
+
+  const id = new URL(request.url).searchParams.get('id')?.trim() ?? '';
+  if (!id) {
+    return NextResponse.json({ error: 'id del aviso requerido.' }, { status: 400 });
+  }
+
+  const { error } = await admin.from('anuncios').delete().eq('id', id);
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  return NextResponse.json({ ok: true });
 }

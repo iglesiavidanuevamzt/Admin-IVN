@@ -1,19 +1,7 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { canAccessScreen, isAdminOrSuperAdmin } from '@/lib/roles';
+import { canManageModule, canPerformModuleAction } from '@/lib/admin/module-access';
 import { getSessionAndRol } from '@/lib/admin/session-profile';
-
-function adminClient() {
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!serviceKey) return null;
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-}
-
-function canManageAlabanzas(roles: string[]) {
-  return isAdminOrSuperAdmin(roles) || canAccessScreen(roles, 'alabanzas');
-}
+import { createServiceRoleClient } from '@/lib/admin/supabase-service';
 
 type AlabanzaPayload = {
   titulo: string;
@@ -33,16 +21,26 @@ function parsePayload(body: Record<string, unknown>): AlabanzaPayload | null {
   };
 }
 
+function forbidden(action?: 'crear' | 'editar' | 'eliminar') {
+  const detalle = action ? ` (${action})` : '';
+  return NextResponse.json(
+    {
+      error: `Sin permiso para ${action ?? 'gestionar'} alabanzas${detalle}. Pide al administrador el permiso correspondiente.`,
+    },
+    { status: 403 }
+  );
+}
+
 export async function PATCH(request: Request) {
   const session = await getSessionAndRol();
   if (!session.user) {
     return NextResponse.json({ error: 'Sesión no válida.' }, { status: 401 });
   }
-  if (!canManageAlabanzas(session.rol)) {
-    return NextResponse.json({ error: 'Sin permiso para editar alabanzas.' }, { status: 403 });
+  if (!canManageModule(session.rol, 'alabanzas') || !canPerformModuleAction(session.rol, 'alabanzas', 'editar')) {
+    return forbidden('editar');
   }
 
-  const admin = adminClient();
+  const admin = createServiceRoleClient();
   if (!admin) {
     return NextResponse.json({ error: 'Servidor sin clave de servicio.' }, { status: 500 });
   }
@@ -86,11 +84,11 @@ export async function POST(request: Request) {
   if (!session.user) {
     return NextResponse.json({ error: 'Sesión no válida.' }, { status: 401 });
   }
-  if (!canManageAlabanzas(session.rol)) {
-    return NextResponse.json({ error: 'Sin permiso para crear alabanzas.' }, { status: 403 });
+  if (!canManageModule(session.rol, 'alabanzas') || !canPerformModuleAction(session.rol, 'alabanzas', 'crear')) {
+    return forbidden('crear');
   }
 
-  const admin = adminClient();
+  const admin = createServiceRoleClient();
   if (!admin) {
     return NextResponse.json({ error: 'Servidor sin clave de servicio.' }, { status: 500 });
   }
@@ -117,4 +115,31 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ alabanza: data });
+}
+
+export async function DELETE(request: Request) {
+  const session = await getSessionAndRol();
+  if (!session.user) {
+    return NextResponse.json({ error: 'Sesión no válida.' }, { status: 401 });
+  }
+  if (!canManageModule(session.rol, 'alabanzas') || !canPerformModuleAction(session.rol, 'alabanzas', 'eliminar')) {
+    return forbidden('eliminar');
+  }
+
+  const admin = createServiceRoleClient();
+  if (!admin) {
+    return NextResponse.json({ error: 'Servidor sin clave de servicio.' }, { status: 500 });
+  }
+
+  const id = new URL(request.url).searchParams.get('id')?.trim() ?? '';
+  if (!id) {
+    return NextResponse.json({ error: 'id de la alabanza requerido.' }, { status: 400 });
+  }
+
+  const { error } = await admin.from('alabanzas').delete().eq('id', id);
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  return NextResponse.json({ ok: true });
 }

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { deleteRecordViaAdminApi } from '@/lib/admin/delete-via-api';
 import { supabase } from '@/lib/supabase';
 import { motion } from 'framer-motion';
 import { Trash2, Edit3, ArrowLeft, Loader2, Calendar, User } from 'lucide-react';
@@ -28,11 +29,14 @@ export const HistoryView = ({ onEdit, onBack }: HistoryViewProps) => {
   };
 
   const deleteAviso = async (id: string) => {
-    if (!confirm("¿Estás seguro de eliminar este aviso?")) return;
-    
-    const { error } = await supabase.from('anuncios').delete().eq('id', id);
-    if (!error) fetchAvisos();
-    else alert("Error al eliminar");
+    if (!confirm('¿Estás seguro de eliminar este aviso?')) return;
+    try {
+      await deleteRecordViaAdminApi('/api/admin/anuncios', id);
+      await fetchAvisos();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al eliminar';
+      alert(msg);
+    }
   };
 
   return (

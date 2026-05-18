@@ -7,6 +7,7 @@ import {
   Send, Users, ImageIcon, Upload, Loader2,
   AlignLeft, History, X, Trash2, Edit3, Clock, CheckCircle, Copy, Search, Anchor, ClipboardPaste
 } from 'lucide-react';
+import { deleteRecordViaAdminApi } from '@/lib/admin/delete-via-api';
 import { supabase } from '@/lib/supabase';
 import { FormState } from '../../types';
 
@@ -185,10 +186,13 @@ export const CaptureForm = ({ form, onChange, onLoadAviso, onResetAviso, onBack,
 
   const confirmDelete = async () => {
     if (!itemToDelete) return;
-    const { error } = await supabase.from('anuncios').delete().eq('id', itemToDelete);
-    if (!error) {
+    try {
+      await deleteRecordViaAdminApi('/api/admin/anuncios', itemToDelete);
       setItemToDelete(null);
-      fetchHistorial();
+      await fetchHistorial();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'No se pudo eliminar el aviso.';
+      setErrorMessage(msg);
     }
   };
 

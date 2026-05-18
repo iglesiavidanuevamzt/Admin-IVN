@@ -2,6 +2,7 @@ import type { Screen } from '@/types';
 import {
   ACCESS_MODULES,
   ADMIN_ROLE,
+  MODULE_ACTION_DENY_TOKENS,
   SUPER_ADMIN_ROLE,
   canAccessScreen,
   isAdminOrSuperAdmin,
@@ -51,7 +52,10 @@ export const ADMIN_USER_EDIT_ROLES: { value: string; label: string }[] = [
   { value: ADMIN_ROLE, label: 'Administrador' },
 ];
 
-export const ADMIN_USER_EDIT_ROLE_VALUES = new Set(ADMIN_USER_EDIT_ROLES.map((r) => r.value));
+export const ADMIN_USER_EDIT_ROLE_VALUES = new Set<string>([
+  ...ADMIN_USER_EDIT_ROLES.map((r) => r.value),
+  ...MODULE_ACTION_DENY_TOKENS,
+]);
 
 export const REGISTRO_CATEGORIAS: { value: string; label: string }[] = [
   { value: SUPER_ADMIN_ROLE, label: 'Super administrador (alta inicial)' },

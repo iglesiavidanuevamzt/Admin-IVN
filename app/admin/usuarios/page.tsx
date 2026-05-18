@@ -4,6 +4,13 @@ import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Loader2, Mail, X } from 'lucide-react';
 import { ADMIN_USER_EDIT_ROLES } from '@/lib/roles';
+import {
+  MODULE_ACTIONS,
+  MODULE_ACTION_LABELS,
+  MODULE_ROLE_IDS,
+  denyTokenFor,
+  type ModuleAction,
+} from '@/lib/access';
 import { copyTextToClipboard } from '@/lib/copy-to-clipboard';
 
 type UsuarioRow = { userId: string; email: string; roles: string[] };
@@ -207,7 +214,27 @@ export default function AdminUsuariosPage() {
   };
 
   const toggleDraftRole = (value: string) => {
-    setDraftRoles((prev) => (prev.includes(value) ? prev.filter((r) => r !== value) : [...prev, value]));
+    setDraftRoles((prev) => {
+      if (prev.includes(value)) {
+        if (MODULE_ROLE_IDS.has(value as never)) {
+          /** Al desmarcar un módulo, también quitamos sus tokens de acción para no dejar basura. */
+          return prev.filter((r) => r !== value && !r.startsWith(`${value}:sin-`));
+        }
+        return prev.filter((r) => r !== value);
+      }
+      return [...prev, value];
+    });
+  };
+
+  const isModuleAllowed = (moduleId: string, action: ModuleAction): boolean => {
+    return !draftRoles.includes(denyTokenFor(moduleId, action));
+  };
+
+  const toggleModuleAction = (moduleId: string, action: ModuleAction) => {
+    const token = denyTokenFor(moduleId, action);
+    setDraftRoles((prev) =>
+      prev.includes(token) ? prev.filter((r) => r !== token) : [...prev, token]
+    );
   };
 
   const saveDraftRoles = async () => {
@@ -410,20 +437,49 @@ export default function AdminUsuariosPage() {
             </div>
 
             <div className="mt-5 grid gap-2">
-              {ADMIN_USER_EDIT_ROLES.map((role) => (
-                <label key={role.value} className="flex items-center gap-2 rounded-lg px-1 py-1 text-sm text-slate-700">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-slate-300"
-                    checked={draftRoles.includes(role.value)}
-                    onChange={() => toggleDraftRole(role.value)}
-                    disabled={rowSaving === editingUser.userId}
-                  />
-                  {role.label}
-                  <span className="text-xs text-slate-400">({role.value})</span>
-                </label>
-              ))}
+              {ADMIN_USER_EDIT_ROLES.map((role) => {
+                const isModule = MODULE_ROLE_IDS.has(role.value as never);
+                const checked = draftRoles.includes(role.value);
+                return (
+                  <div key={role.value} className="rounded-lg border border-slate-100 bg-slate-50/60 p-2">
+                    <label className="flex items-center gap-2 px-1 py-1 text-sm text-slate-700">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-slate-300"
+                        checked={checked}
+                        onChange={() => toggleDraftRole(role.value)}
+                        disabled={rowSaving === editingUser.userId}
+                      />
+                      {role.label}
+                      <span className="text-xs text-slate-400">({role.value})</span>
+                    </label>
+                    {isModule && checked && (
+                      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 pl-7">
+                        {MODULE_ACTIONS.map((action) => (
+                          <label
+                            key={action}
+                            className="inline-flex items-center gap-1.5 text-xs text-slate-600"
+                          >
+                            <input
+                              type="checkbox"
+                              className="h-3.5 w-3.5 rounded border-slate-300"
+                              checked={isModuleAllowed(role.value, action)}
+                              onChange={() => toggleModuleAction(role.value, action)}
+                              disabled={rowSaving === editingUser.userId}
+                            />
+                            {MODULE_ACTION_LABELS[action]}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
+            <p className="mt-3 text-[11px] text-slate-500">
+              Marca el módulo para dar acceso; destilda Crear, Editar o Eliminar para restringir esa acción. Si no
+              destildas nada, el usuario tiene todo (compatibilidad con permisos actuales).
+            </p>
 
             <div className="mt-6 flex justify-end gap-2">
               <button

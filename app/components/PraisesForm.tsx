@@ -7,6 +7,7 @@ import {
   Loader2, Settings, X, Trash2, Edit3, 
   Search, CheckCircle, AlertTriangle, Copy, User
 } from 'lucide-react';
+import { deleteRecordViaAdminApi } from '@/lib/admin/delete-via-api';
 import { supabase } from '@/lib/supabase';
 import { FormState } from '../../types';
 
@@ -216,13 +217,12 @@ export const PraisesForm = ({ form, onChange, onLoadAlabanza, onResetAlabanza, o
   const executeDelete = async () => {
     if (!confirmDelete.id) return;
     try {
-      const { error } = await supabase.from('alabanzas').delete().eq('id', confirmDelete.id);
-      if (error) throw error;
-      
+      await deleteRecordViaAdminApi('/api/admin/alabanzas', confirmDelete.id);
       setConfirmDelete({ show: false, id: null });
-      fetchHistorial();
-    } catch (error: any) {
-      console.error("Error al borrar: ", error.message);
+      await fetchHistorial();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'No se pudo eliminar la alabanza.';
+      setErrorMessage(msg);
     }
   };
 

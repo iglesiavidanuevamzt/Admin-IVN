@@ -46,6 +46,46 @@ export const ACCESS_MODULES: readonly AccessModule[] = [
 
 export const MODULE_ROLE_IDS = new Set(ACCESS_MODULES.map((m) => m.roleId));
 
+/**
+ * Permisos granulares por módulo (denylist, NO rompe a usuarios existentes).
+ *
+ * - Tener `anuncios` en `perfiles.rol` sigue dando ver + crear + editar + eliminar.
+ * - Añadir `anuncios:sin-crear` quita SOLO la capacidad de crear.
+ * - Idem `:sin-editar` y `:sin-eliminar`.
+ * - admin / super-admin ignoran estos tokens.
+ */
+export const MODULE_ACTIONS = ['crear', 'editar', 'eliminar'] as const;
+export type ModuleAction = (typeof MODULE_ACTIONS)[number];
+
+export const MODULE_ACTION_LABELS: Record<ModuleAction, string> = {
+  crear: 'Crear',
+  editar: 'Editar',
+  eliminar: 'Eliminar',
+};
+
+export function denyTokenFor(moduleId: string, action: ModuleAction): string {
+  return `${moduleId}:sin-${action}`;
+}
+
+export const MODULE_ACTION_DENY_TOKENS: readonly string[] = ACCESS_MODULES.flatMap((m) =>
+  MODULE_ACTIONS.map((a) => denyTokenFor(m.roleId, a))
+);
+
+export const MODULE_ACTION_DENY_TOKEN_SET = new Set<string>(MODULE_ACTION_DENY_TOKENS);
+
+export function isModuleDenyToken(role: string): boolean {
+  return MODULE_ACTION_DENY_TOKEN_SET.has(role);
+}
+
+const SCREEN_TO_MODULE_ID = ACCESS_MODULES.reduce<Record<string, string>>((acc, m) => {
+  for (const s of m.screens) acc[s] = m.roleId;
+  return acc;
+}, {});
+
+export function moduleIdForScreen(screen: string): string | null {
+  return SCREEN_TO_MODULE_ID[screen] ?? null;
+}
+
 export const ALL_NAVIGABLE_SCREENS: ReadonlySet<Screen> = new Set([
   'home',
   'devocional',

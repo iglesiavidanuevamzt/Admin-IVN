@@ -7,6 +7,7 @@ import {
   Loader2, Settings, X, Trash2, Edit3, 
   CheckCircle, AlertTriangle, AlertCircle, Copy, Search
 } from 'lucide-react';
+import { deleteRecordViaAdminApi } from '@/lib/admin/delete-via-api';
 import { supabase } from '@/lib/supabase';
 import { FormState } from '../../types';
 
@@ -145,12 +146,12 @@ export const DevocionalForm = ({ form, onChange, onLoadDevocional, onResetDevoci
   const executeDelete = async () => {
     if (!confirmDelete.id) return;
     try {
-      const { error } = await supabase.from('devocionales').delete().eq('id', confirmDelete.id);
-      if (error) throw error;
+      await deleteRecordViaAdminApi('/api/admin/devocionales', confirmDelete.id);
       setConfirmDelete({ show: false, id: null });
-      fetchHistorial();
-    } catch (error: any) {
-      console.error("No se pudo eliminar:", error.message);
+      await fetchHistorial();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'No se pudo eliminar el devocional.';
+      setErrorMessage(msg);
     }
   };
 
