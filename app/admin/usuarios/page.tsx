@@ -243,6 +243,50 @@ export default function AdminUsuariosPage() {
     setEditingUser(null);
   };
 
+  const renderUserActions = (u: UsuarioRow) => {
+    const restriction = getEditRestriction(u);
+    const disabled = Boolean(restriction);
+    const deleteDisabled =
+      !adminMe?.isSuperAdmin ||
+      rowDeleting === u.userId ||
+      u.userId === adminMe?.userId ||
+      u.roles.includes('super-admin');
+
+    return (
+      <>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => openEditor(u)}
+            disabled={disabled}
+            title={restriction ?? 'Editar roles'}
+            className="min-h-10 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-[#1b3a4a] hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400 sm:flex-none"
+          >
+            Editar
+          </button>
+          <button
+            type="button"
+            onClick={() => void removeUser(u)}
+            disabled={deleteDisabled}
+            title={
+              adminMe?.isSuperAdmin
+                ? u.roles.includes('super-admin')
+                  ? 'No puedes eliminar otro super-admin aquí.'
+                  : u.userId === adminMe.userId
+                    ? 'No puedes eliminar tu propia cuenta.'
+                    : 'Eliminar usuario'
+                : 'Solo super-admin puede eliminar usuarios.'
+            }
+            className="min-h-10 flex-1 rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400 sm:flex-none"
+          >
+            {rowDeleting === u.userId ? 'Eliminando…' : 'Eliminar'}
+          </button>
+        </div>
+        {restriction && <p className="mt-2 text-[11px] text-slate-400">{restriction}</p>}
+      </>
+    );
+  };
+
   if (loading && allowed === null && !loadError) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-slate-50">
@@ -265,8 +309,8 @@ export default function AdminUsuariosPage() {
   }
 
   return (
-    <div className="min-h-dvh bg-slate-50 px-4 py-8">
-      <div className="mx-auto max-w-3xl">
+    <div className="min-h-dvh overflow-x-hidden bg-slate-50 px-3 py-6 pb-10 sm:px-4 sm:py-8">
+      <div className="mx-auto w-full max-w-3xl">
         <Link
           href="/"
           className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-[#1b3a4a] hover:underline"
@@ -274,7 +318,7 @@ export default function AdminUsuariosPage() {
           <ArrowLeft className="h-4 w-4" /> Volver al panel
         </Link>
 
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-lg sm:p-8">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-lg sm:rounded-[2rem] sm:p-8">
           <h1 className="font-serif text-xl font-bold text-[#1b3a4a]">Gestión de usuarios</h1>
           <p className="mt-1 text-sm text-slate-600">Correos registrados y roles actuales en la tabla perfiles.</p>
 
@@ -290,30 +334,32 @@ export default function AdminUsuariosPage() {
               Correo o enlace por WhatsApp. No uses ambos a la vez: si envías correo, no pulses «Generar enlace» después
               (invalida el correo). Si el enlace expiró, solo «Generar enlace».
             </p>
-            <form onSubmit={sendInvite} className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <form onSubmit={sendInvite} className="mt-4 flex flex-col gap-3">
               <input
                 type="email"
                 required
                 placeholder="correo@ejemplo.com"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
-                className="min-w-0 flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm"
+                className="min-w-0 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
               />
-              <button
-                type="submit"
-                disabled={inviteLoading || linkLoading}
-                className="rounded-xl bg-[#1b3a4a] px-4 py-2.5 text-xs font-black uppercase tracking-widest text-white disabled:opacity-50"
-              >
-                {inviteLoading ? 'Enviando…' : 'Invitar por correo'}
-              </button>
-              <button
-                type="button"
-                disabled={inviteLoading || linkLoading}
-                onClick={() => void generateSetupLink()}
-                className="rounded-xl border border-[#1b3a4a] bg-white px-4 py-2.5 text-xs font-black uppercase tracking-widest text-[#1b3a4a] disabled:opacity-50"
-              >
-                {linkLoading ? 'Generando…' : 'Generar enlace'}
-              </button>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <button
+                  type="submit"
+                  disabled={inviteLoading || linkLoading}
+                  className="min-h-11 w-full rounded-xl bg-[#1b3a4a] px-4 py-3 text-xs font-black uppercase tracking-widest text-white disabled:opacity-50"
+                >
+                  {inviteLoading ? 'Enviando…' : 'Invitar por correo'}
+                </button>
+                <button
+                  type="button"
+                  disabled={inviteLoading || linkLoading}
+                  onClick={() => void generateSetupLink()}
+                  className="min-h-11 w-full rounded-xl border border-[#1b3a4a] bg-white px-4 py-3 text-xs font-black uppercase tracking-widest text-[#1b3a4a] disabled:opacity-50"
+                >
+                  {linkLoading ? 'Generando…' : 'Generar enlace'}
+                </button>
+              </div>
             </form>
             {inviteMsg && <p className="mt-3 text-sm text-green-700">{inviteMsg}</p>}
             {inviteSetupLink && (
@@ -344,9 +390,30 @@ export default function AdminUsuariosPage() {
               <div className="mt-8 flex justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-[#1b3a4a]/30" />
               </div>
+            ) : usuarios.length === 0 ? (
+              <p className="mt-4 py-6 text-center text-sm text-slate-500">No hay perfiles registrados.</p>
             ) : (
-              <div className="mt-4 overflow-x-auto rounded-xl border border-slate-100">
-                <table className="w-full min-w-[320px] text-left text-sm">
+              <>
+                <ul className="mt-4 space-y-3 md:hidden">
+                  {usuarios.map((u) => (
+                    <li
+                      key={u.userId}
+                      className="rounded-xl border border-slate-100 bg-slate-50/50 p-4"
+                    >
+                      <p className="break-all text-sm font-medium text-slate-800">{u.email || '—'}</p>
+                      <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        Roles
+                      </p>
+                      <p className="mt-1 break-words text-xs leading-relaxed text-slate-700">
+                        {u.roles.length > 0 ? u.roles.join(', ') : 'visitante'}
+                      </p>
+                      <div className="mt-4 border-t border-slate-100 pt-3">{renderUserActions(u)}</div>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="mt-4 hidden overflow-x-auto rounded-xl border border-slate-100 md:block">
+                <table className="w-full min-w-[520px] text-left text-sm">
                   <thead className="border-b border-slate-100 bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-500">
                     <tr>
                       <th className="px-4 py-3">Correo</th>
@@ -357,70 +424,25 @@ export default function AdminUsuariosPage() {
                   <tbody>
                     {usuarios.map((u) => (
                       <tr key={u.userId} className="border-b border-slate-50 last:border-0">
-                        <td className="max-w-[200px] truncate px-4 py-3 text-slate-800">{u.email || '—'}</td>
-                        <td className="px-4 py-3 text-xs text-slate-700">
+                        <td className="max-w-[240px] break-all px-4 py-3 text-slate-800">{u.email || '—'}</td>
+                        <td className="max-w-[200px] break-words px-4 py-3 text-xs text-slate-700">
                           {u.roles.length > 0 ? u.roles.join(', ') : <span className="text-slate-400">visitante</span>}
                         </td>
-                        <td className="px-4 py-3 text-right">
-                          {(() => {
-                            const restriction = getEditRestriction(u);
-                            const disabled = Boolean(restriction);
-                            const deleteDisabled =
-                              !adminMe?.isSuperAdmin ||
-                              rowDeleting === u.userId ||
-                              u.userId === adminMe.userId ||
-                              u.roles.includes('super-admin');
-                            return (
-                              <>
-                                <div className="flex justify-end gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => openEditor(u)}
-                                    disabled={disabled}
-                                    title={restriction ?? 'Editar roles'}
-                                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-[#1b3a4a] hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:bg-transparent"
-                                  >
-                                    Editar
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => void removeUser(u)}
-                                    disabled={deleteDisabled}
-                                    title={
-                                      adminMe?.isSuperAdmin
-                                        ? u.roles.includes('super-admin')
-                                          ? 'No puedes eliminar otro super-admin aquí.'
-                                          : u.userId === adminMe.userId
-                                            ? 'No puedes eliminar tu propia cuenta.'
-                                            : 'Eliminar usuario'
-                                        : 'Solo super-admin puede eliminar usuarios.'
-                                    }
-                                    className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400 disabled:hover:bg-transparent"
-                                  >
-                                    {rowDeleting === u.userId ? 'Eliminando…' : 'Eliminar'}
-                                  </button>
-                                </div>
-                                {restriction && <p className="mt-1 text-[11px] text-slate-400">{restriction}</p>}
-                              </>
-                            );
-                          })()}
-                        </td>
+                        <td className="min-w-[180px] px-4 py-3 text-right">{renderUserActions(u)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                {usuarios.length === 0 && !loading && (
-                  <p className="px-4 py-6 text-center text-sm text-slate-500">No hay perfiles registrados.</p>
-                )}
-              </div>
+                </div>
+              </>
             )}
           </section>
         </div>
       </div>
 
       {editingUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 px-4">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/35 p-3 sm:items-center sm:p-4">
+          <div className="max-h-[min(92dvh,720px)] w-full max-w-md overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-6">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-base font-black text-[#1b3a4a]">Editar módulos</h3>
@@ -481,11 +503,11 @@ export default function AdminUsuariosPage() {
               destildas nada, el usuario tiene todo (compatibilidad con permisos actuales).
             </p>
 
-            <div className="mt-6 flex justify-end gap-2">
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 onClick={() => setEditingUser(null)}
-                className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600"
+                className="min-h-11 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-xs font-bold text-slate-600 sm:w-auto"
               >
                 Cancelar
               </button>
@@ -493,7 +515,7 @@ export default function AdminUsuariosPage() {
                 type="button"
                 onClick={() => void saveDraftRoles()}
                 disabled={rowSaving === editingUser.userId}
-                className="rounded-lg bg-[#1b3a4a] px-3 py-2 text-xs font-black uppercase tracking-widest text-white disabled:opacity-50"
+                className="min-h-11 w-full rounded-lg bg-[#1b3a4a] px-3 py-2.5 text-xs font-black uppercase tracking-widest text-white disabled:opacity-50 sm:w-auto"
               >
                 {rowSaving === editingUser.userId ? 'Guardando…' : 'Guardar'}
               </button>
