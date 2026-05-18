@@ -17,6 +17,7 @@ export default function AdminUsuariosPage() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteMsg, setInviteMsg] = useState<string | null>(null);
   const [inviteErr, setInviteErr] = useState<string | null>(null);
+  const [inviteSetupLink, setInviteSetupLink] = useState<string | null>(null);
   const [rowSaving, setRowSaving] = useState<string | null>(null);
   const [rowDeleting, setRowDeleting] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<UsuarioRow | null>(null);
@@ -71,6 +72,7 @@ export default function AdminUsuariosPage() {
     e.preventDefault();
     setInviteErr(null);
     setInviteMsg(null);
+    setInviteSetupLink(null);
     setInviteLoading(true);
     try {
       const res = await fetch('/api/admin/invite', {
@@ -78,9 +80,15 @@ export default function AdminUsuariosPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: inviteEmail.trim() }),
       });
-      const body = await res.json().catch(() => ({}));
+      const body = (await res.json().catch(() => ({}))) as {
+        message?: string;
+        setupLink?: string | null;
+        emailTemplateNote?: string;
+        error?: string;
+      };
       if (!res.ok) throw new Error(body.error || 'Error al invitar');
       setInviteMsg(body.message || 'Invitación enviada.');
+      setInviteSetupLink(typeof body.setupLink === 'string' ? body.setupLink : null);
       setInviteEmail('');
       await loadUsuarios();
     } catch (e: unknown) {
@@ -229,6 +237,26 @@ export default function AdminUsuariosPage() {
               </button>
             </form>
             {inviteMsg && <p className="mt-3 text-sm text-green-700">{inviteMsg}</p>}
+            {inviteSetupLink && (
+              <div className="mt-3 rounded-xl border border-[#1b3a4a]/15 bg-slate-50 p-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  Enlace directo (si el correo falla)
+                </p>
+                <p className="mt-1 break-all text-xs text-slate-700">{inviteSetupLink}</p>
+                <button
+                  type="button"
+                  onClick={() => void navigator.clipboard.writeText(inviteSetupLink)}
+                  className="mt-2 text-xs font-bold text-[#1b3a4a] underline"
+                >
+                  Copiar enlace
+                </button>
+                <p className="mt-2 text-[11px] text-slate-500">
+                  Envíalo por WhatsApp. En Supabase, plantilla Invite: el botón debe usar{' '}
+                  <code className="rounded bg-white px-1">{'{{ .ConfirmationURL }}'}</code>, no{' '}
+                  <code className="rounded bg-white px-1">{'{{ .Token }}'}</code>.
+                </p>
+              </div>
+            )}
             {inviteErr && <p className="mt-3 text-sm text-red-600">{inviteErr}</p>}
           </section>
 

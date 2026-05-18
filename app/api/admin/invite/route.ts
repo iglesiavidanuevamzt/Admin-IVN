@@ -39,12 +39,6 @@ export async function POST(request: Request) {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  /**
-   * inviteUserByEmail → redirectTo absoluto, una sola vez /set-password.
-   * Con Site URL = https://admin-ivn.vercel.app y env igual, Supabase redirige a:
-   *   https://admin-ivn.vercel.app/set-password#access_token=…&type=invite
-   * (nunca /set-password/set-password). Tokens en hash; consumir en /set-password con flowType implicit.
-   */
   const redirectTo = getSetPasswordRedirectUrl() || undefined;
   if (!redirectTo) {
     return NextResponse.json(
@@ -82,8 +76,22 @@ export async function POST(request: Request) {
     }
   }
 
+  /** Enlace válido de Supabase (por si la plantilla del correo está mal). */
+  const { data: linkData } = await admin.auth.admin.generateLink({
+    type: 'invite',
+    email: inviteEmail,
+    options: { redirectTo },
+  });
+  const setupLink =
+    linkData?.properties?.action_link ??
+    (linkData?.properties as { action_link?: string } | undefined)?.action_link ??
+    null;
+
   return NextResponse.json({
     message:
-      'Invitación enviada. El invitado debe abrir el enlace del correo y establecer su contraseña en la pantalla que aparece.',
+      'Invitación enviada. El invitado debe abrir el enlace y establecer su contraseña en /set-password.',
+    setupLink,
+    emailTemplateNote:
+      'En Supabase → Authentication → Email Templates → Invite user: el botón debe usar href="{{ .ConfirmationURL }}" (no armar la URL con {{ .Token }}).',
   });
 }

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { CheckCircle2, KeyRound, Loader2 } from 'lucide-react';
 import { establishInviteSessionFromUrl } from '@/lib/auth/establish-invite-session';
 import { parseAuthParamsFromUrl, urlLooksLikeAuthRedirect } from '@/lib/auth/parse-auth-url';
+import { tryRepairMalformedInviteUrl } from '@/lib/auth/repair-invite-url';
 import { createInviteRecoverySupabaseClient } from '@/lib/supabase-invite-recovery-client';
 
 const MIN_LENGTH = 8;
@@ -28,7 +29,9 @@ export default function SetPasswordPage() {
     const path = window.location.pathname;
     if (path !== '/set-password' && path.startsWith('/set-password')) {
       window.location.replace(`/set-password${window.location.search}${window.location.hash}`);
+      return;
     }
+    if (tryRepairMalformedInviteUrl()) return;
   }, []);
 
   useEffect(() => {
@@ -156,8 +159,9 @@ export default function SetPasswordPage() {
             <p>No hay una sesión de invitación activa. El enlace puede haber expirado o ya se usó.</p>
             {linkError && <p className="mt-2 text-[11px] font-medium text-amber-950">{linkError}</p>}
             <p className="mt-2 text-[11px] text-amber-800/90">
-              Abre el enlace con el botón del correo en Chrome o Safari (no vista previa de Gmail). La URL debe incluir
-              #access_token=… largo, no un número corto.
+              El correo probablemente usa una plantilla incorrecta en Supabase. Pide al administrador el{' '}
+              <strong>enlace directo</strong> desde Gestión de usuarios (Copiar enlace) o corrige la plantilla Invite: el
+              botón debe ser <code className="rounded bg-white/80 px-1">{'{{ .ConfirmationURL }}'}</code>.
             </p>
             <Link href="/login" className="mt-3 inline-block text-sm font-bold text-[#1b3a4a] underline">
               Ir al inicio de sesión
