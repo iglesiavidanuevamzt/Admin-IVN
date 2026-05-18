@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Loader2, Lock } from 'lucide-react';
+import { signInAction } from './actions';
 import { redirectImplicitAuthHashToSetPassword } from '@/lib/auth/redirect-invite-hash';
 
 function isTokenStorageError(err: unknown): boolean {
@@ -46,15 +47,9 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/sign-in', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email: email.trim(), password }),
-      });
-      const body = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) {
-        throw new Error(body.error ?? 'No se pudo iniciar sesión.');
+      const result = await signInAction(email, password);
+      if (!result.ok) {
+        throw new Error(result.error);
       }
       window.location.assign('/');
     } catch (err: unknown) {

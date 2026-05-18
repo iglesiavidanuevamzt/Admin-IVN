@@ -6,7 +6,7 @@ import { CheckCircle2, KeyRound, Loader2 } from 'lucide-react';
 import { establishInviteSessionFromUrl } from '@/lib/auth/establish-invite-session';
 import { messageForAuthUrlError } from '@/lib/auth/invite-link-errors';
 import { parseAuthParamsFromUrl, urlLooksLikeAuthRedirect } from '@/lib/auth/parse-auth-url';
-import { completeInviteLoginAfterPassword } from '@/lib/auth/complete-invite-login';
+import { saveInvitePasswordAction } from './actions';
 import { isSamePasswordError, translateAuthError } from '@/lib/auth/password-errors';
 import { tryRepairMalformedInviteUrl } from '@/lib/auth/repair-invite-url';
 import { createInviteRecoverySupabaseClient } from '@/lib/supabase-invite-recovery-client';
@@ -141,22 +141,15 @@ export default function SetPasswordPage() {
         );
       }
 
-      const loggedIn = await completeInviteLoginAfterPassword({
+      const saved = await saveInvitePasswordAction({
         email,
         password,
         accessToken: session.access_token,
         refreshToken: session.refresh_token,
       });
-      if (!loggedIn.ok) {
-        throw new Error(loggedIn.error);
+      if (!saved.ok) {
+        throw new Error(saved.error);
       }
-
-      await fetch('/api/auth/bootstrap-perfil', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ roles: ['visitante'] }),
-      });
 
       await supabase.auth.signOut();
 
