@@ -1,5 +1,5 @@
 /**
- * Tras guardar contraseña en /set-password: sesión en cookies vía API (middleware la ve).
+ * Tras guardar contraseña: inicia sesión en el servidor (cookies) para que el middleware reconozca al usuario.
  */
 export async function completeInviteLoginAfterPassword(options: {
   email: string;
@@ -8,6 +8,17 @@ export async function completeInviteLoginAfterPassword(options: {
   refreshToken?: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const { email, password, accessToken, refreshToken } = options;
+
+  const signIn = await fetch('/api/auth/sign-in', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ email, password }),
+  });
+  const signBody = (await signIn.json().catch(() => ({}))) as { error?: string };
+  if (signIn.ok) {
+    return { ok: true };
+  }
 
   if (accessToken && refreshToken) {
     const est = await fetch('/api/auth/establish-session', {
@@ -20,22 +31,17 @@ export async function completeInviteLoginAfterPassword(options: {
       }),
     });
     const estBody = (await est.json().catch(() => ({}))) as { error?: string };
-    if (est.ok) return { ok: true };
-    if (est.status !== 401) {
-      return { ok: false, error: estBody.error ?? 'No se pudo establecer la sesión.' };
+    if (est.ok) {
+      return { ok: true };
     }
+    return {
+      ok: false,
+      error: signBody.error ?? estBody.error ?? 'No se pudo iniciar sesión. Intenta de nuevo en unos segundos.',
+    };
   }
 
-  const signIn = await fetch('/api/auth/sign-in', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ email, password }),
-  });
-  const signBody = (await signIn.json().catch(() => ({}))) as { error?: string };
-  if (!signIn.ok) {
-    return { ok: false, error: signBody.error ?? 'No se pudo iniciar sesión con la nueva contraseña.' };
-  }
-
-  return { ok: true };
+  return {
+    ok: false,
+    error: signBody.error ?? 'No se pudo iniciar sesión con la nueva contraseña.',
+  };
 }

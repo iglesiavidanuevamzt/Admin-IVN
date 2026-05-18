@@ -15,13 +15,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Faltan tokens de sesión.' }, { status: 400 });
   }
 
-  const response = NextResponse.json({ ok: true });
-  const supabase = await createSupabaseRouteHandlerClient(response);
+  const { supabase, successResponse } = await createSupabaseRouteHandlerClient();
   const { error } = await supabase.auth.setSession({ access_token, refresh_token });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 401 });
   }
 
-  return response;
+  await supabase.auth.getUser();
+  return successResponse();
 }

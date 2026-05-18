@@ -2,13 +2,17 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
-/** Cliente Supabase en Route Handlers con cookies en la respuesta JSON/redirect. */
-export async function createSupabaseRouteHandlerClient(
-  response: NextResponse
-): Promise<ReturnType<typeof createServerClient>> {
-  const cookieStore = await cookies();
+type RouteAuthClient = {
+  supabase: ReturnType<typeof createServerClient>;
+  /** Respuesta JSON { ok: true } con cookies de sesión ya adjuntas. */
+  successResponse: () => NextResponse;
+};
 
-  return createServerClient(
+export async function createSupabaseRouteHandlerClient(): Promise<RouteAuthClient> {
+  const cookieStore = await cookies();
+  let response = NextResponse.json({ ok: true });
+
+  const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -18,10 +22,20 @@ export async function createSupabaseRouteHandlerClient(
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
+            try {
+              cookieStore.set(name, value, options);
+            } catch {
+              /* solo lectura en algunos contextos */
+            }
             response.cookies.set(name, value, options);
           });
         },
       },
     }
   );
+
+  return {
+    supabase,
+    successResponse: () => response,
+  };
 }

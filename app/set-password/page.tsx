@@ -129,9 +129,13 @@ export default function SetPasswordPage() {
       const { error: err } = await supabase.auth.updateUser({ password });
       if (err) throw err;
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const refreshed = await supabase.auth.refreshSession();
+      let session = refreshed.data.session;
+      if (!session) {
+        session = (await supabase.auth.getSession()).data.session;
+      }
+
+      await new Promise((r) => setTimeout(r, 400));
 
       const loggedIn = await completeInviteLoginAfterPassword({
         email,

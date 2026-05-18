@@ -15,13 +15,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Correo y contraseña requeridos.' }, { status: 400 });
   }
 
-  const response = NextResponse.json({ ok: true });
-  const supabase = await createSupabaseRouteHandlerClient(response);
+  const { supabase, successResponse } = await createSupabaseRouteHandlerClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 401 });
   }
 
-  return response;
+  await supabase.auth.getUser();
+  return successResponse();
 }
