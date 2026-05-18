@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Loader2, Mail, X } from 'lucide-react';
 import { ADMIN_USER_EDIT_ROLES } from '@/lib/roles';
+import { copyTextToClipboard } from '@/lib/copy-to-clipboard';
 
 type UsuarioRow = { userId: string; email: string; roles: string[] };
 type AdminMe = { userId: string; isSuperAdmin: boolean };
@@ -18,6 +19,7 @@ export default function AdminUsuariosPage() {
   const [inviteMsg, setInviteMsg] = useState<string | null>(null);
   const [inviteErr, setInviteErr] = useState<string | null>(null);
   const [inviteSetupLink, setInviteSetupLink] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [linkLoading, setLinkLoading] = useState(false);
   const [rowSaving, setRowSaving] = useState<string | null>(null);
   const [rowDeleting, setRowDeleting] = useState<string | null>(null);
@@ -103,6 +105,7 @@ export default function AdminUsuariosPage() {
     setInviteErr(null);
     setInviteMsg(null);
     setInviteSetupLink(null);
+    setLinkCopied(false);
     setLinkLoading(true);
     try {
       const res = await fetch('/api/admin/invite-link', {
@@ -123,6 +126,18 @@ export default function AdminUsuariosPage() {
       setInviteErr(e instanceof Error ? e.message : 'Error al generar enlace.');
     } finally {
       setLinkLoading(false);
+    }
+  };
+
+  const copySetupLink = async () => {
+    if (!inviteSetupLink) return;
+    setInviteErr(null);
+    const ok = await copyTextToClipboard(inviteSetupLink);
+    if (ok) {
+      setLinkCopied(true);
+      window.setTimeout(() => setLinkCopied(false), 2500);
+    } else {
+      setInviteErr('No se pudo copiar. Selecciona el enlace de arriba y usa Ctrl+C (o mantén pulsado para copiar).');
     }
   };
 
@@ -282,10 +297,10 @@ export default function AdminUsuariosPage() {
                 <p className="mt-1 break-all text-xs text-slate-700">{inviteSetupLink}</p>
                 <button
                   type="button"
-                  onClick={() => void navigator.clipboard.writeText(inviteSetupLink)}
-                  className="mt-2 text-xs font-bold text-[#1b3a4a] underline"
+                  onClick={() => void copySetupLink()}
+                  className="mt-2 rounded-lg border border-[#1b3a4a]/25 bg-white px-3 py-1.5 text-xs font-bold text-[#1b3a4a] transition-colors hover:bg-[#1b3a4a]/5"
                 >
-                  Copiar enlace
+                  {linkCopied ? '¡Copiado!' : 'Copiar enlace'}
                 </button>
                 <p className="mt-2 text-[11px] text-slate-500">
                   Copia y envía por WhatsApp. El invitado debe abrirlo una vez en Chrome o Safari (no vista previa de
