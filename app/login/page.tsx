@@ -2,10 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Loader2, Lock } from 'lucide-react';
 import { redirectImplicitAuthHashToSetPassword } from '@/lib/auth/redirect-invite-hash';
-import { supabase } from '@/lib/supabase-browser';
 
 function isTokenStorageError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
@@ -32,7 +30,6 @@ function clearSupabaseLocalStorage(): void {
 }
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -49,13 +46,15 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const { data, error: err } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
+      const res = await fetch('/api/auth/sign-in', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email: email.trim(), password }),
       });
-      if (err) throw err;
-      if (!data.session) {
-        throw new Error('Inicio de sesión sin sesión. Intenta de nuevo.');
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        throw new Error(body.error ?? 'No se pudo iniciar sesión.');
       }
       window.location.assign('/');
     } catch (err: unknown) {

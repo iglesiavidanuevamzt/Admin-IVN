@@ -6,7 +6,7 @@ import { CheckCircle2, KeyRound, Loader2 } from 'lucide-react';
 import { establishInviteSessionFromUrl } from '@/lib/auth/establish-invite-session';
 import { messageForAuthUrlError } from '@/lib/auth/invite-link-errors';
 import { parseAuthParamsFromUrl, urlLooksLikeAuthRedirect } from '@/lib/auth/parse-auth-url';
-import { syncInviteSessionToAppClient } from '@/lib/auth/sync-session-to-app-client';
+import { completeInviteLoginAfterPassword } from '@/lib/auth/complete-invite-login';
 import { tryRepairMalformedInviteUrl } from '@/lib/auth/repair-invite-url';
 import { createInviteRecoverySupabaseClient } from '@/lib/supabase-invite-recovery-client';
 
@@ -118,27 +118,42 @@ export default function SetPasswordPage() {
 
     setLoading(true);
     try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const email = user?.email?.trim();
+      if (!email) {
+        throw new Error('No se encontró el correo de la invitación. Abre el enlace del correo de nuevo.');
+      }
+
       const { error: err } = await supabase.auth.updateUser({ password });
       if (err) throw err;
 
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      const synced = await syncInviteSessionToAppClient(supabase, session);
-      if (!synced.ok) {
-        throw new Error(synced.error);
+
+      const loggedIn = await completeInviteLoginAfterPassword({
+        email,
+        password,
+        accessToken: session?.access_token,
+        refreshToken: session?.refresh_token,
+      });
+      if (!loggedIn.ok) {
+        throw new Error(loggedIn.error);
       }
 
       await fetch('/api/auth/bootstrap-perfil', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ roles: ['visitante'] }),
       });
 
       await supabase.auth.signOut();
 
       setSuccess(true);
-      await new Promise((r) => setTimeout(r, 900));
+      await new Promise((r) => setTimeout(r, 600));
       window.location.assign('/');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar la contraseña.');
