@@ -62,8 +62,9 @@ export async function updateSession(request: NextRequest) {
   const isRegistro = path === '/registro' || path.startsWith('/registro/');
   const isSetPassword = path === '/set-password' || path.startsWith('/set-password/');
   const isAuthCallback = path === '/auth/callback' || path.startsWith('/auth/callback/');
+  const isAuthInvite = path === '/auth/invite' || path.startsWith('/auth/invite/');
   const isAdminUsuarios = path === '/admin/usuarios' || path.startsWith('/admin/usuarios/');
-  const isPublicAuth = isLogin || isRegistro || isSetPassword || isAuthCallback;
+  const isPublicAuth = isLogin || isRegistro || isSetPassword || isAuthCallback || isAuthInvite;
 
   // Sin sesión → login (excepto rutas públicas). No aplica bypass: sin cookie de auth no hay app.
   if (!user && !isPublicAuth) {

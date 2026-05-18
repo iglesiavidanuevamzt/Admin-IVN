@@ -12,6 +12,6 @@ export const config = {
      * Excluye /api/* (POST de auth), estáticos y páginas públicas de auth.
      * api/ con barra evita que POST a /api/auth/... reciba redirect 405 a /login.
      */
-    '/((?!api/|_next/static|_next/image|favicon.ico|icons|manifest.json|sw.js|login|registro|auth/callback|set-password).*)',
+    '/((?!api/|_next/static|_next/image|favicon.ico|icons|manifest.json|sw.js|login|registro|auth/callback|auth/invite|set-password).*)',
   ],
 };

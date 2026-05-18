@@ -12,6 +12,7 @@ import {
   getServerInviteSessionTokensAction,
 } from './session-actions';
 import { isSamePasswordError, translateAuthError } from '@/lib/auth/password-errors';
+import { isInAppBrowser } from '@/lib/auth/detect-in-app-browser';
 import { tryRepairMalformedInviteUrl } from '@/lib/auth/repair-invite-url';
 import { createInviteRecoverySupabaseClient } from '@/lib/supabase-invite-recovery-client';
 
@@ -39,6 +40,14 @@ export default function SetPasswordPage() {
       return;
     }
     if (tryRepairMalformedInviteUrl()) return;
+
+    const params = parseAuthParamsFromUrl();
+    if (params.token_hash) {
+      const u = new URL('/auth/invite', window.location.origin);
+      u.searchParams.set('token_hash', params.token_hash);
+      if (params.type) u.searchParams.set('type', params.type);
+      window.location.replace(u.toString());
+    }
   }, []);
 
   useEffect(() => {
@@ -232,6 +241,12 @@ export default function SetPasswordPage() {
               No reutilices enlaces viejos. El administrador debe pulsar <strong>Generar enlace</strong> (sin enviar otro
               correo) y enviarte ese enlace nuevo por WhatsApp.
             </p>
+            {isInAppBrowser() && (
+              <p className="mt-2 text-[11px] font-medium text-amber-950">
+                Si abriste desde WhatsApp: menú <strong>⋮</strong> → <strong>Abrir en Safari</strong> o{' '}
+                <strong>Chrome</strong>, genera un enlace nuevo y pulsa <strong>Continuar</strong> en la primera pantalla.
+              </p>
+            )}
             <Link href="/login" className="mt-3 inline-block text-sm font-bold text-[#1b3a4a] underline">
               Ir al inicio de sesión
             </Link>

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { emailMayInvite } from '@/lib/admin/inviters';
 import { getSessionAndRol } from '@/lib/admin/session-profile';
-import { getInviteWhatsAppCallbackRedirectUrl } from '@/lib/site-url';
+import { getInviteWhatsAppLandingUrl } from '@/lib/site-url';
 
 /**
  * Solo genera un enlace de invitación (sin enviar correo).
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Correo inválido.' }, { status: 400 });
   }
 
-  const redirectTo = getInviteWhatsAppCallbackRedirectUrl();
+  const redirectTo = getInviteWhatsAppLandingUrl();
   if (!redirectTo) {
     return NextResponse.json({ error: 'Falta NEXT_PUBLIC_SITE_URL.' }, { status: 500 });
   }
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     message:
-      'Enlace generado. Envíalo por WhatsApp; que lo abra una sola vez en Chrome o Safari (menú ⋮ → Abrir en navegador). No reutilices enlaces viejos.',
+      'Enlace generado. En WhatsApp: abrir → pantalla «Continuar» → establecer contraseña. Si falla: ⋮ → Abrir en Safari. No reutilices enlaces viejos.',
     setupLink,
   });
 }

@@ -30,12 +30,16 @@ export function getSetPasswordRedirectUrl(): string {
 }
 
 /**
- * Redirect para «Generar enlace» (WhatsApp): el callback en servidor recibe
- * token_hash en query (no depende del #access_token que pierde WhatsApp).
+ * Landing de invitación por WhatsApp. El token NO se consume en el servidor al abrir
+ * el enlace (evita que la vista previa de WhatsApp gaste el token antes del usuario).
  */
-export function getInviteWhatsAppCallbackRedirectUrl(): string {
+export function getInviteWhatsAppLandingUrl(): string {
   const base = getSiteUrl();
   if (!base) return '';
-  const next = encodeURIComponent(SET_PASSWORD_PATH);
-  return `${base}/auth/callback?next=${next}`;
+  return `${base}/auth/invite`;
+}
+
+/** redirectTo interno para generateLink (Supabase). */
+export function getInviteWhatsAppCallbackRedirectUrl(): string {
+  return getInviteWhatsAppLandingUrl();
 }
