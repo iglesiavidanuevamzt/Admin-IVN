@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2, KeyRound, Loader2 } from 'lucide-react';
 import { establishInviteSessionFromUrl } from '@/lib/auth/establish-invite-session';
+import { messageForAuthUrlError } from '@/lib/auth/invite-link-errors';
 import { parseAuthParamsFromUrl, urlLooksLikeAuthRedirect } from '@/lib/auth/parse-auth-url';
 import { tryRepairMalformedInviteUrl } from '@/lib/auth/repair-invite-url';
 import { createInviteRecoverySupabaseClient } from '@/lib/supabase-invite-recovery-client';
@@ -61,7 +62,10 @@ export default function SetPasswordPage() {
     void (async () => {
       const params = parseAuthParamsFromUrl();
       if (params.error) {
-        finish(null, params.error_description ?? params.error);
+        finish(null, messageForAuthUrlError(params));
+        if (typeof window !== 'undefined' && window.history.replaceState) {
+          window.history.replaceState(null, '', window.location.pathname);
+        }
         return;
       }
 
@@ -159,9 +163,8 @@ export default function SetPasswordPage() {
             <p>No hay una sesión de invitación activa. El enlace puede haber expirado o ya se usó.</p>
             {linkError && <p className="mt-2 text-[11px] font-medium text-amber-950">{linkError}</p>}
             <p className="mt-2 text-[11px] text-amber-800/90">
-              El correo probablemente usa una plantilla incorrecta en Supabase. Pide al administrador el{' '}
-              <strong>enlace directo</strong> desde Gestión de usuarios (Copiar enlace) o corrige la plantilla Invite: el
-              botón debe ser <code className="rounded bg-white/80 px-1">{'{{ .ConfirmationURL }}'}</code>.
+              No reutilices enlaces viejos. El administrador debe pulsar <strong>Generar enlace</strong> (sin enviar otro
+              correo) y enviarte ese enlace nuevo por WhatsApp.
             </p>
             <Link href="/login" className="mt-3 inline-block text-sm font-bold text-[#1b3a4a] underline">
               Ir al inicio de sesión

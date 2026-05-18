@@ -18,6 +18,7 @@ export default function AdminUsuariosPage() {
   const [inviteMsg, setInviteMsg] = useState<string | null>(null);
   const [inviteErr, setInviteErr] = useState<string | null>(null);
   const [inviteSetupLink, setInviteSetupLink] = useState<string | null>(null);
+  const [linkLoading, setLinkLoading] = useState(false);
   const [rowSaving, setRowSaving] = useState<string | null>(null);
   const [rowDeleting, setRowDeleting] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<UsuarioRow | null>(null);
@@ -80,21 +81,48 @@ export default function AdminUsuariosPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: inviteEmail.trim() }),
       });
-      const body = (await res.json().catch(() => ({}))) as {
-        message?: string;
-        setupLink?: string | null;
-        emailTemplateNote?: string;
-        error?: string;
-      };
+      const body = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
       if (!res.ok) throw new Error(body.error || 'Error al invitar');
       setInviteMsg(body.message || 'Invitación enviada.');
-      setInviteSetupLink(typeof body.setupLink === 'string' ? body.setupLink : null);
+      setInviteSetupLink(null);
       setInviteEmail('');
       await loadUsuarios();
     } catch (e: unknown) {
       setInviteErr(e instanceof Error ? e.message : 'Error al enviar invitación.');
     } finally {
       setInviteLoading(false);
+    }
+  };
+
+  const generateSetupLink = async () => {
+    const email = inviteEmail.trim();
+    if (!email) {
+      setInviteErr('Escribe el correo antes de generar el enlace.');
+      return;
+    }
+    setInviteErr(null);
+    setInviteMsg(null);
+    setInviteSetupLink(null);
+    setLinkLoading(true);
+    try {
+      const res = await fetch('/api/admin/invite-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const body = (await res.json().catch(() => ({}))) as {
+        message?: string;
+        setupLink?: string;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(body.error || 'No se pudo generar el enlace.');
+      setInviteMsg(body.message || 'Enlace generado.');
+      setInviteSetupLink(body.setupLink ?? null);
+      await loadUsuarios();
+    } catch (e: unknown) {
+      setInviteErr(e instanceof Error ? e.message : 'Error al generar enlace.');
+    } finally {
+      setLinkLoading(false);
     }
   };
 
@@ -217,7 +245,8 @@ export default function AdminUsuariosPage() {
               <Mail className="h-3.5 w-3.5" /> Invitar encargado
             </h2>
             <p className="mt-1 text-xs text-slate-500">
-              Se envía un correo de invitación de Supabase (registro público desactivado).
+              Correo o enlace por WhatsApp. No uses ambos a la vez: si envías correo, no pulses «Generar enlace» después
+              (invalida el correo). Si el enlace expiró, solo «Generar enlace».
             </p>
             <form onSubmit={sendInvite} className="mt-4 flex flex-col gap-3 sm:flex-row">
               <input
@@ -230,17 +259,25 @@ export default function AdminUsuariosPage() {
               />
               <button
                 type="submit"
-                disabled={inviteLoading}
+                disabled={inviteLoading || linkLoading}
                 className="rounded-xl bg-[#1b3a4a] px-4 py-2.5 text-xs font-black uppercase tracking-widest text-white disabled:opacity-50"
               >
                 {inviteLoading ? 'Enviando…' : 'Invitar por correo'}
+              </button>
+              <button
+                type="button"
+                disabled={inviteLoading || linkLoading}
+                onClick={() => void generateSetupLink()}
+                className="rounded-xl border border-[#1b3a4a] bg-white px-4 py-2.5 text-xs font-black uppercase tracking-widest text-[#1b3a4a] disabled:opacity-50"
+              >
+                {linkLoading ? 'Generando…' : 'Generar enlace'}
               </button>
             </form>
             {inviteMsg && <p className="mt-3 text-sm text-green-700">{inviteMsg}</p>}
             {inviteSetupLink && (
               <div className="mt-3 rounded-xl border border-[#1b3a4a]/15 bg-slate-50 p-3">
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                  Enlace directo (si el correo falla)
+                  Enlace para WhatsApp (válido una sola apertura)
                 </p>
                 <p className="mt-1 break-all text-xs text-slate-700">{inviteSetupLink}</p>
                 <button
@@ -251,9 +288,8 @@ export default function AdminUsuariosPage() {
                   Copiar enlace
                 </button>
                 <p className="mt-2 text-[11px] text-slate-500">
-                  Envíalo por WhatsApp. En Supabase, plantilla Invite: el botón debe usar{' '}
-                  <code className="rounded bg-white px-1">{'{{ .ConfirmationURL }}'}</code>, no{' '}
-                  <code className="rounded bg-white px-1">{'{{ .Token }}'}</code>.
+                  Copia y envía por WhatsApp. El invitado debe abrirlo una vez en Chrome o Safari (no vista previa de
+                  Gmail).
                 </p>
               </div>
             )}

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { messageForAuthUrlError } from './invite-link-errors';
 import { parseAuthParamsFromUrl } from './parse-auth-url';
 
 /**
@@ -12,7 +13,7 @@ export async function establishInviteSessionFromUrl(
   if (params.error) {
     return {
       session: null,
-      errorMessage: params.error_description ?? params.error,
+      errorMessage: messageForAuthUrlError(params),
     };
   }
 

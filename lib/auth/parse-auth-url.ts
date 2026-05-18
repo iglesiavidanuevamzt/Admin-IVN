@@ -4,6 +4,7 @@ export type AuthUrlParams = {
   refresh_token?: string;
   type?: string;
   error?: string;
+  error_code?: string;
   error_description?: string;
   token_hash?: string;
   code?: string;
@@ -21,6 +22,7 @@ export function parseAuthParamsFromUrl(location?: Location): AuthUrlParams {
     refresh_token: get('refresh_token') ?? undefined,
     type: get('type') ?? undefined,
     error: get('error') ?? undefined,
+    error_code: get('error_code') ?? undefined,
     error_description: get('error_description') ?? undefined,
     token_hash: get('token_hash') ?? undefined,
     code: get('code') ?? undefined,
