@@ -12,6 +12,9 @@ interface NavbarProps {
   showUserManagement?: boolean;
 }
 
+const iconBtn =
+  'flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/15 text-white transition-all hover:bg-white/25 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white';
+
 export const Navbar = ({ currentScreen, onNavigate, showUserManagement }: NavbarProps) => {
   const router = useRouter();
 
@@ -22,72 +25,63 @@ export const Navbar = ({ currentScreen, onNavigate, showUserManagement }: Navbar
   };
 
   return (
-  <header className="bg-[#1b3a4a] py-5 px-6 shadow-md flex items-center justify-between sticky top-0 z-50">
-    {/* Logo y Título */}
-    <div 
-      className="flex items-center gap-3 cursor-pointer" 
-      onClick={() => onNavigate('home')} 
-      role="button"
-    >
-      <img 
-        src="/icons/logo.png" 
-        alt="Logo Vida Nueva" 
-        className="h-10 w-auto" 
-      />
-      <h1 className="font-serif text-sm sm:text-lg text-white font-bold tracking-tight">
-        Vida Nueva Awaken
-      </h1>
-    </div>
-    
-    {/* Botones de Acción según la Pantalla */}
-    {currentScreen !== 'home' ? (
-      <div className="flex items-center gap-2">
-        {showUserManagement && (
-          <Link
-            href="/admin/usuarios"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white/80 transition-all hover:bg-white/20 hover:text-white"
-            title="Gestión de usuarios"
-          >
-            <Users className="h-5 w-5" />
-          </Link>
-        )}
-        <button
-          type="button"
-          onClick={() => onNavigate('home')}
-          className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-xs font-bold text-white/90 transition-all hover:bg-white/20 active:scale-95"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          VOLVER
-        </button>
+    <header className="sticky top-0 z-50 flex items-center justify-between bg-[#1b3a4a] px-6 py-5 shadow-md">
+      <div
+        className="flex cursor-pointer items-center gap-3"
+        onClick={() => onNavigate('home')}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onNavigate('home');
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label="Ir al inicio del panel"
+      >
+        <img src="/icons/logo.png" alt="" className="h-10 w-auto" aria-hidden />
+        <h1 className="font-serif text-sm font-bold tracking-tight text-white sm:text-lg">
+          Vida Nueva Awaken
+        </h1>
       </div>
-    ) : (
-      <div className="flex items-center gap-2">
-        {showUserManagement && (
-          <Link
-            href="/admin/usuarios"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white/80 transition-all hover:bg-white/20 hover:text-white"
-            title="Gestión de usuarios"
+
+      {currentScreen !== 'home' ? (
+        <div className="flex items-center gap-2">
+          {showUserManagement && (
+            <Link href="/admin/usuarios" className={iconBtn} aria-label="Gestión de usuarios">
+              <Users className="h-5 w-5" aria-hidden />
+            </Link>
+          )}
+          <button
+            type="button"
+            onClick={() => onNavigate('home')}
+            className="flex items-center gap-1 rounded-lg border border-white/20 bg-white/15 px-3 py-2 text-xs font-bold text-white transition-all hover:bg-white/25 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            aria-label="Volver al inicio"
           >
-            <Users className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4" aria-hidden />
+            VOLVER
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          {showUserManagement && (
+            <Link href="/admin/usuarios" className={iconBtn} aria-label="Gestión de usuarios">
+              <Users className="h-5 w-5" aria-hidden />
+            </Link>
+          )}
+          <Link href="/perfil" className={iconBtn} aria-label="Mi perfil">
+            <User className="h-5 w-5" aria-hidden />
           </Link>
-        )}
-        <Link
-          href="/perfil"
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white/80 transition-all hover:bg-white/20 hover:text-white"
-          title="Perfil"
-        >
-          <User className="h-5 w-5" />
-        </Link>
-        <button
-          type="button"
-          onClick={() => void signOut()}
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white/80 transition-all hover:bg-white/20 hover:text-white"
-          title="Cerrar sesión"
-        >
-          <LogOut className="h-5 w-5" />
-        </button>
-      </div>
-    )}
-  </header>
+          <button
+            type="button"
+            onClick={() => void signOut()}
+            className={iconBtn}
+            aria-label="Cerrar sesión"
+          >
+            <LogOut className="h-5 w-5" aria-hidden />
+          </button>
+        </div>
+      )}
+    </header>
   );
 };

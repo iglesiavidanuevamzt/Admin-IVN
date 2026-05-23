@@ -78,7 +78,12 @@ export default function LoginPage() {
           Acceso con correo y contraseña. Si recibiste invitación por correo, abre ese enlace (no uses Registrarse).
         </p>
 
-        <form onSubmit={signInWithPassword} className="mt-8 space-y-4">
+        <form
+          onSubmit={signInWithPassword}
+          className="notranslate mt-8 space-y-4"
+          translate="no"
+          autoComplete="on"
+        >
           <div>
             <label htmlFor="email" className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-500">
               Correo

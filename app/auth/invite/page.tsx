@@ -55,7 +55,10 @@ function InviteLandingInner() {
   };
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center bg-slate-50 px-4 py-10">
+    <div
+      className="notranslate flex min-h-dvh flex-col items-center justify-center bg-slate-50 px-4 py-10"
+      translate="no"
+    >
       <div className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-8 shadow-xl sm:p-10">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#1b3a4a]/10 text-[#1b3a4a]">
           <KeyRound className="h-6 w-6" />

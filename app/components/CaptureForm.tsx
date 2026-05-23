@@ -704,7 +704,14 @@ export const CaptureForm = ({ form, onChange, onLoadAviso, onResetAviso, onBack,
                     <h3 className="font-black text-[#1b3a4a] text-lg uppercase tracking-tight">Historial de Avisos</h3>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Edita o elimina publicaciones</p>
                   </div>
-                  <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-slate-200 rounded-full"><X className="w-6 h-6 text-slate-400" /></button>
+                  <button
+                    type="button"
+                    onClick={() => setShowHistory(false)}
+                    className="rounded-full p-2 hover:bg-slate-200"
+                    aria-label="Cerrar historial"
+                  >
+                    <X className="h-6 w-6 text-slate-400" aria-hidden />
+                  </button>
                 </div>
 
                 <motion.div className="flex w-full min-w-0 flex-col gap-4 sm:flex-row">
@@ -750,8 +757,22 @@ export const CaptureForm = ({ form, onChange, onLoadAviso, onResetAviso, onBack,
                       <p className="text-slate-600 text-sm truncate font-black uppercase tracking-tight">{item.titulo}</p>
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => startEditing(item)} className="p-3 text-blue-500 hover:bg-blue-50 rounded-2xl transition-all"><Edit3 className="w-5 h-5" /></button>
-                      <button onClick={() => setItemToDelete(item.id)} className="p-3 text-red-400 hover:bg-red-50 rounded-2xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                      <button
+                        type="button"
+                        onClick={() => startEditing(item)}
+                        className="rounded-2xl p-3 text-blue-600 hover:bg-blue-50 transition-all"
+                        aria-label={`Editar aviso ${item.titulo ?? ''}`}
+                      >
+                        <Edit3 className="h-5 w-5" aria-hidden />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setItemToDelete(item.id)}
+                        className="rounded-2xl p-3 text-red-600 hover:bg-red-50 transition-all"
+                        aria-label={`Eliminar aviso ${item.titulo ?? ''}`}
+                      >
+                        <Trash2 className="h-5 w-5" aria-hidden />
+                      </button>
                     </div>
                   </div>
                 )) : (

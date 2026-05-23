@@ -56,7 +56,7 @@ export const HomeScreen = ({
         {showUserManagement && (
           <Link
             href="/admin/usuarios"
-            className="mb-6 w-full rounded-2xl border border-[#1b3a4a]/15 bg-[#1b3a4a] px-4 py-3 text-center text-[10px] font-black uppercase tracking-widest text-white shadow-md transition-opacity hover:opacity-95"
+            className="mb-6 w-full rounded-2xl border border-[#1b3a4a]/15 bg-[#1b3a4a] px-4 py-3 text-center text-[10px] font-black uppercase tracking-widest text-white shadow-md transition-opacity hover:opacity-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1b3a4a]"
           >
             Gestión de usuarios
           </Link>
@@ -85,6 +85,7 @@ export const HomeScreen = ({
                 whileTap={{ scale: 0.9 }}
                 onClick={() => onNavigate(card.id)}
                 className="group flex w-full flex-col items-center"
+                aria-label={`Abrir ${card.title}`}
               >
                 <div className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-[1.8rem] bg-[#1b3a4a] p-5 shadow-lg shadow-[#1b3a4a]/20">
                   <img src={card.iconPath} alt={card.title} className="h-full w-full object-contain" />

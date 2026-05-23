@@ -1,14 +1,41 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
+import { Loader2 } from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { HomeScreen } from './components/HomeScreen';
-import { DevocionalForm } from './components/DevocionalForm';
-import { CaptureForm } from './components/CaptureForm';
-import { HistoryView } from './components/HistoryView';
-import { PraisesForm } from './components/PraisesForm';
-import { CalendarView } from './components/CalendarView';
 import { FormState, Screen } from '../types';
+
+function PanelScreenLoader() {
+  return (
+    <div className="flex justify-center py-16" role="status" aria-live="polite">
+      <Loader2 className="h-8 w-8 animate-spin text-[#1b3a4a]/35" aria-hidden />
+      <span className="sr-only">Cargando módulo…</span>
+    </div>
+  );
+}
+
+const DevocionalForm = dynamic(
+  () => import('./components/DevocionalForm').then((m) => ({ default: m.DevocionalForm })),
+  { loading: PanelScreenLoader, ssr: false }
+);
+const CaptureForm = dynamic(
+  () => import('./components/CaptureForm').then((m) => ({ default: m.CaptureForm })),
+  { loading: PanelScreenLoader, ssr: false }
+);
+const HistoryView = dynamic(
+  () => import('./components/HistoryView').then((m) => ({ default: m.HistoryView })),
+  { loading: PanelScreenLoader, ssr: false }
+);
+const PraisesForm = dynamic(
+  () => import('./components/PraisesForm').then((m) => ({ default: m.PraisesForm })),
+  { loading: PanelScreenLoader, ssr: false }
+);
+const CalendarView = dynamic(
+  () => import('./components/CalendarView').then((m) => ({ default: m.CalendarView })),
+  { loading: PanelScreenLoader, ssr: false }
+);
 import { supabase } from '@/lib/supabase-browser';
 import { resolveAccess } from '@/lib/access';
 import { redirectImplicitAuthHashToSetPassword } from '@/lib/auth/redirect-invite-hash';

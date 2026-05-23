@@ -6,12 +6,30 @@
 }
 
 @layer base {
+  /* Evita que traductores del navegador rompan el DOM de React */
+  html.notranslate,
+  .notranslate {
+    translate: no;
+  }
+
   html {
     background-color: #f8fafc;
   }
   body {
     background-color: #f8fafc;
     color: #0f172a;
+  }
+
+  /* Contraste accesible en botones primarios del panel (#1b3a4a ≈ 9:1 con texto blanco) */
+  .btn-panel-primary {
+    background-color: #1b3a4a;
+    color: #ffffff;
+  }
+  .btn-panel-primary:hover {
+    background-color: #165263;
+  }
+  .btn-panel-primary:disabled {
+    opacity: 0.55;
   }
 
   .custom-scrollbar::-webkit-scrollbar {

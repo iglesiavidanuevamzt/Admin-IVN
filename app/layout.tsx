@@ -32,10 +32,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
-    <html lang="es" className={`${inter.variable} ${crimsonPro.variable}`}>
+    <html
+      lang="es"
+      translate="no"
+      className={`notranslate ${inter.variable} ${crimsonPro.variable}`}
+    >
       <body
         suppressHydrationWarning
-        className="min-h-dvh font-sans bg-slate-50 text-slate-900 antialiased"
+        className="notranslate min-h-dvh font-sans bg-slate-50 text-slate-900 antialiased"
+        translate="no"
       >
         {children}
       </body>

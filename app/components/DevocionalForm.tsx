@@ -386,8 +386,13 @@ export const DevocionalForm = ({ form, onChange, onLoadDevocional, onResetDevoci
                     <h3 className="font-black text-[#1b3a4a] text-lg uppercase tracking-tight">Archivo de Devocionales</h3>
                     <p className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Consulta y edita días anteriores</p>
                   </div>
-                  <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-slate-200 rounded-full transition-all">
-                    <X className="w-6 h-6 text-slate-400" />
+                  <button
+                    type="button"
+                    onClick={() => setShowHistory(false)}
+                    className="rounded-full p-2 transition-all hover:bg-slate-200"
+                    aria-label="Cerrar historial"
+                  >
+                    <X className="w-6 h-6 text-slate-400" aria-hidden />
                   </button>
                 </div>
 
@@ -405,11 +410,13 @@ export const DevocionalForm = ({ form, onChange, onLoadDevocional, onResetDevoci
                       onChange={(e) => setFilterDate(e.target.value)}
                     />
                     {filterDate && (
-                      <button 
-                        onClick={() => setFilterDate('')} 
-                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-all z-10"
+                      <button
+                        type="button"
+                        onClick={() => setFilterDate('')}
+                        className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-slate-100 p-2 transition-all hover:bg-slate-200"
+                        aria-label="Quitar filtro de fecha"
                       >
-                        <X className="w-3 h-3 text-slate-400" />
+                        <X className="h-3 w-3 text-slate-400" aria-hidden />
                       </button>
                     )}
                   </div>
@@ -425,11 +432,21 @@ export const DevocionalForm = ({ form, onChange, onLoadDevocional, onResetDevoci
                       <p className="text-slate-600 text-sm truncate font-medium">{item.reflexion}</p>
                     </div>
                     <div className="flex gap-2 shrink-0">
-                      <button onClick={() => startEditing(item)} className="p-3 text-blue-500 hover:bg-blue-50 rounded-2xl transition-all">
-                        <Edit3 className="w-5 h-5" />
+                      <button
+                        type="button"
+                        onClick={() => startEditing(item)}
+                        className="rounded-2xl p-3 text-blue-600 transition-all hover:bg-blue-50"
+                        aria-label={`Editar devocional del ${item.fecha}`}
+                      >
+                        <Edit3 className="h-5 w-5" aria-hidden />
                       </button>
-                      <button onClick={() => setConfirmDelete({ show: true, id: item.id })} className="p-3 text-red-400 hover:bg-red-50 rounded-2xl transition-all">
-                        <Trash2 className="w-5 h-5" />
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDelete({ show: true, id: item.id })}
+                        className="rounded-2xl p-3 text-red-600 transition-all hover:bg-red-50"
+                        aria-label={`Eliminar devocional del ${item.fecha}`}
+                      >
+                        <Trash2 className="h-5 w-5" aria-hidden />
                       </button>
                     </div>
                   </div>

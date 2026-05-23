@@ -467,8 +467,13 @@ export const PraisesForm = ({ form, onChange, onLoadAlabanza, onResetAlabanza, o
                     />
                   </div>
                 </div>
-                <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-slate-200 rounded-full transition-all">
-                  <X className="w-6 h-6 text-slate-400" />
+                <button
+                  type="button"
+                  onClick={() => setShowHistory(false)}
+                  className="rounded-full p-2 transition-all hover:bg-slate-200"
+                  aria-label="Cerrar biblioteca"
+                >
+                  <X className="w-6 h-6 text-slate-400" aria-hidden />
                 </button>
               </div>
 
@@ -483,8 +488,22 @@ export const PraisesForm = ({ form, onChange, onLoadAlabanza, onResetAlabanza, o
                       <p className="truncate text-[10px] font-medium uppercase tracking-widest text-slate-400">{item.letra?.substring(0, 60)}...</p>
                     </div>
                     <div className="flex gap-2 shrink-0">
-                      <button onClick={() => startEditing(item)} className="p-3 text-blue-500 hover:bg-blue-50 rounded-2xl transition-all"><Edit3 className="w-5 h-5" /></button>
-                      <button onClick={() => setConfirmDelete({ show: true, id: item.id })} className="p-3 text-red-400 hover:bg-red-50 rounded-2xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                      <button
+                        type="button"
+                        onClick={() => startEditing(item)}
+                        className="rounded-2xl p-3 text-blue-600 hover:bg-blue-50 transition-all"
+                        aria-label={`Editar ${item.titulo}`}
+                      >
+                        <Edit3 className="h-5 w-5" aria-hidden />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDelete({ show: true, id: item.id })}
+                        className="rounded-2xl p-3 text-red-600 hover:bg-red-50 transition-all"
+                        aria-label={`Eliminar ${item.titulo}`}
+                      >
+                        <Trash2 className="h-5 w-5" aria-hidden />
+                      </button>
                     </div>
                   </div>
                 )) : (

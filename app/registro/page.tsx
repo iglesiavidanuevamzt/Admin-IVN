@@ -99,7 +99,12 @@ export default function RegistroPage() {
           los asigna un administrador.
         </p>
 
-        <form onSubmit={onSubmit} className="mt-8 space-y-4">
+        <form
+          onSubmit={onSubmit}
+          className="notranslate mt-8 space-y-4"
+          translate="no"
+          autoComplete="on"
+        >
           <div>
             <label
               htmlFor="reg-email"

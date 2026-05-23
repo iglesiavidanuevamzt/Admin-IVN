@@ -259,7 +259,12 @@ export default function SetPasswordPage() {
             <Loader2 className="h-6 w-6 animate-spin text-[#1b3a4a]/30" />
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+          <form
+            onSubmit={handleSubmit}
+            className="notranslate mt-8 space-y-4"
+            translate="no"
+            autoComplete="on"
+          >
             <div>
               <label
                 htmlFor="new-password"
